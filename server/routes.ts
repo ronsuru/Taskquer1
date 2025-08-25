@@ -1,3 +1,4 @@
+import "dotenv/config";
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
@@ -41,64 +42,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin settings endpoints
-  app.get("/api/admin/settings", async (req, res) => {
-    try {
-      const adminId = req.headers["x-user-id"] as string;
-      if (!adminId) {
-        return res.status(401).json({ error: "Admin access required" });
-      }
 
-      const adminUser = await storage.getUserByTelegramId(adminId);
-      if (!adminUser?.isAdmin) {
-        return res.status(403).json({ error: "Admin access required" });
-      }
-
-      const settings = await storage.getAllSystemSettings();
-      res.json(settings);
-    } catch (error) {
-      console.error("Error fetching system settings:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
-
-  app.post("/api/admin/settings", async (req, res) => {
-    try {
-      const adminId = req.headers["x-user-id"] as string;
-      if (!adminId) {
-        return res.status(401).json({ error: "Admin access required" });
-      }
-
-      const adminUser = await storage.getUserByTelegramId(adminId);
-      if (!adminUser?.isAdmin) {
-        return res.status(403).json({ error: "Admin access required" });
-      }
-
-      const { minWithdrawal, withdrawalFee, campaignCreationFee, minCampaignSlots, minRewardAmount } = req.body;
-
-      // Update each setting individually
-      if (minWithdrawal) {
-        await storage.setSystemSetting("min_withdrawal_amount", minWithdrawal, "Minimum withdrawal amount (USDT)", adminUser.id);
-      }
-      if (withdrawalFee) {
-        await storage.setSystemSetting("withdrawal_fee", withdrawalFee, "Withdrawal fee (USDT)", adminUser.id);
-      }
-      if (campaignCreationFee) {
-        await storage.setSystemSetting("campaign_creation_fee", campaignCreationFee, "Campaign creation fee (USDT)", adminUser.id);
-      }
-      if (minCampaignSlots) {
-        await storage.setSystemSetting("min_slots", minCampaignSlots, "Minimum campaign slots", adminUser.id);
-      }
-      if (minRewardAmount) {
-        await storage.setSystemSetting("min_reward_amount", minRewardAmount, "Minimum reward per task (USDT)", adminUser.id);
-      }
-
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error updating system settings:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
 
   // User endpoints
   app.get("/api/users/:telegramId", async (req, res) => {
@@ -155,6 +99,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(campaigns);
     } catch (error) {
       console.error("Error fetching campaigns:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Get campaign submissions (for campaign creators) - MUST come before /:id route
+  app.get("/api/campaigns/:campaignId/submissions", async (req, res) => {
+    try {
+      const { campaignId } = req.params;
+      const { creatorId } = req.query;
+      
+      if (!creatorId) {
+        return res.status(400).json({ error: "Creator ID required" });
+      }
+
+      // Verify the user is the campaign creator
+      const campaign = await storage.getCampaign(campaignId);
+      if (!campaign) {
+        return res.status(404).json({ error: "Campaign not found" });
+      }
+
+      if (campaign.creatorId !== creatorId) {
+        return res.status(403).json({ error: "Only campaign creator can view submissions" });
+      }
+
+      const submissions = await storage.getCampaignSubmissions(campaignId);
+      res.json(submissions);
+    } catch (error) {
+      console.error("Error fetching campaign submissions:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -319,37 +291,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Approve/reject submissions
+  // Approve/reject submissions (for campaign creators)
   app.put("/api/submissions/:id/review", async (req, res) => {
     try {
-      const { status, userId } = req.body; // status: approved/rejected
+      const { status, creatorId } = req.body; // status: approved/rejected, creatorId for verification
       
-      const submission = await storage.updateSubmissionStatus(req.params.id, status);
-      
-      if (status === "approved") {
-        // Get campaign details for reward
-        const campaign = await storage.getCampaign(submission.campaignId);
-        if (campaign) {
-          // Create reward transaction
-          await storage.createTransaction({
-            userId: submission.userId,
-            type: "reward",
-            amount: campaign.rewardAmount,
-            fee: "0",
-            status: "completed",
-            campaignId: campaign.id,
-          });
-
-          // Update user balance
-          const user = await storage.getUser(submission.userId);
-          if (user) {
-            const newBalance = (parseFloat(user.balance) + parseFloat(campaign.rewardAmount)).toString();
-            await storage.updateUserBalance(user.id, newBalance);
-          }
-        }
+      if (!creatorId) {
+        return res.status(400).json({ error: "Creator ID required" });
       }
 
-      res.json(submission);
+      const submission = await storage.getSubmission(req.params.id);
+      if (!submission) {
+        return res.status(404).json({ error: "Submission not found" });
+      }
+
+      // Verify the user is the campaign creator
+      const campaign = await storage.getCampaign(submission.campaignId);
+      if (!campaign) {
+        return res.status(404).json({ error: "Campaign not found" });
+      }
+
+      if (campaign.creatorId !== creatorId) {
+        return res.status(403).json({ error: "Only campaign creator can review submissions" });
+      }
+
+      // Update submission status
+      const updatedSubmission = await storage.updateSubmissionStatus(req.params.id, status);
+      
+      if (status === "approved") {
+        // Create reward transaction
+        await storage.createTransaction({
+          userId: submission.userId,
+          type: "reward",
+          amount: campaign.rewardAmount,
+          fee: "0",
+          status: "completed",
+          campaignId: campaign.id,
+        });
+
+        // Update user balance
+        const user = await storage.getUser(submission.userId);
+        if (user) {
+          const newBalance = (parseFloat(user.balance) + parseFloat(campaign.rewardAmount)).toString();
+          await storage.updateUserBalance(user.id, newBalance);
+        }
+
+        // Update user rewards
+        const newRewards = (parseFloat(user.rewards) + parseFloat(campaign.rewardAmount)).toString();
+        await storage.updateUserRewards(user.id, newRewards);
+      } else if (status === "rejected") {
+        // Return slot to the campaign
+        await storage.updateCampaignSlots(campaign.id, campaign.availableSlots + 1);
+      }
+
+      res.json(updatedSubmission);
     } catch (error) {
       console.error("Error reviewing submission:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -455,6 +450,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
+
+
   // Admin middleware
   const requireAdmin = async (req: any, res: any, next: any) => {
     const telegramId = req.headers['x-user-id'];
@@ -462,13 +459,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).json({ error: 'User ID required' });
     }
 
-    // Check if the user is the admin by Telegram ID
-    const adminTelegramId = process.env.ADMIN_TELEGRAM_ID || "5154336054";
-    if (telegramId !== adminTelegramId) {
+    // Check if the user exists and is an admin in the database
+    const user = await storage.getUserByTelegramId(telegramId);
+    if (!user || !user.isAdmin) {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    const user = await storage.getUserByTelegramId(telegramId);
     req.user = user;
     next();
   };

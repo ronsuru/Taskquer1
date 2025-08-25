@@ -11,12 +11,17 @@ import TaskSubmissionModal from "@/components/TaskSubmissionModal";
 import AdminBalanceModal from "@/components/AdminBalanceModal";
 import { User, Wallet, Trophy, CheckCircle, Search, Plus, Filter, Settings } from "lucide-react";
 import type { Campaign, User as UserType, Transaction } from "@shared/schema";
+import { useTelegram } from "@/contexts/TelegramContext";
+import { TelegramAppLauncher } from "@/components/TelegramAppLauncher";
 
 export default function Dashboard() {
+  const { user: telegramUser, isTelegramApp, isInitialized } = useTelegram();
   const [selectedTask, setSelectedTask] = useState<Campaign | null>(null);
   const [platformFilter, setPlatformFilter] = useState("all");
   const [showAdminPanel, setShowAdminPanel] = useState(false);
-  const [userId] = useState("5154336054"); // Real Telegram ID - permanent and unique
+  
+  // Use Telegram user ID if available, otherwise fallback to hardcoded ID
+  const userId = telegramUser?.id?.toString() || "5154336054";
 
   // Fetch user data
   const { data: user } = useQuery<UserType>({
@@ -66,6 +71,20 @@ export default function Dashboard() {
     });
   };
 
+  // Show Telegram app launcher if not running in Telegram
+  if (!isTelegramApp && isInitialized) {
+    return <TelegramAppLauncher />;
+  }
+
+  // Show loading while initializing
+  if (!isInitialized) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Navigation */}
@@ -91,9 +110,19 @@ export default function Dashboard() {
                   {user?.balance || "0.00"} USDT
                 </span>
               </div>
-              <Button variant="ghost" size="sm">
-                <User className="w-5 h-5 text-slate-600" />
-              </Button>
+              <div className="flex items-center space-x-2">
+                {telegramUser?.photoUrl && (
+                  <img 
+                    src={telegramUser.photoUrl} 
+                    alt="Profile" 
+                    className="w-8 h-8 rounded-full"
+                  />
+                )}
+                <Button variant="ghost" size="sm">
+                  <User className="w-5 h-5 text-slate-600" />
+                  {telegramUser?.firstName || 'User'}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

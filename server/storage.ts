@@ -101,6 +101,15 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async updateUserRewards(id: string, amount: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ rewards: amount })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
   async getCampaigns(platform?: string): Promise<Campaign[]> {
     const now = new Date();
     

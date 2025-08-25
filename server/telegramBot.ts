@@ -106,9 +106,7 @@ Use /menu to see all available commands.
         case '🆘 Contact Support':
           this.handleContactSupport(chatId, telegramId);
           break;
-        case '🔧 Test Wallet':
-          this.handleTestWallet(chatId, telegramId);
-          break;
+
         case '🔴 Admin Panel':
           if (this.isAdmin(telegramId)) {
             this.showAdminPanel(chatId, telegramId);
@@ -1266,14 +1264,13 @@ Choose an option:
 🎯 My Campaigns - Create and manage campaigns
 💸 Withdraw Funds - Withdraw your earnings
 🆘 Contact Support - Get help from our team
-🔧 Test Wallet - Check blockchain connectivity${isAdminUser ? '\n🔴 Admin Panel - Balance Management' : ''}
+${isAdminUser ? '\n🔴 Admin Panel - Balance Management' : ''}
     `;
 
     const keyboard: any[] = [
       [{ text: '👤 Create Account' }, { text: '💰 Fund Account' }],
       [{ text: '📋 Available Campaigns' }, { text: '🎯 My Campaigns' }],
-      [{ text: '💸 Withdraw Funds' }, { text: '🆘 Contact Support' }],
-      [{ text: '🔧 Test Wallet' }]
+      [{ text: '💸 Withdraw Funds' }, { text: '🆘 Contact Support' }]
     ];
 
     if (isAdminUser) {
@@ -2330,39 +2327,7 @@ Copy the template above and send it to our support team for faster assistance.
     }
   }
 
-  private async handleTestWallet(chatId: number, telegramId: string) {
-    try {
-      this.bot.sendMessage(chatId, '🔧 Testing wallet connectivity...');
-      
-      const testResult = await tonService.testWallet();
-      
-      if (testResult.valid) {
-        this.bot.sendMessage(chatId, `
-✅ **Wallet Connected Successfully!**
 
-🏦 **Wallet Address:** ${testResult.address}
-💰 **TON Balance:** ${testResult.balance} TON
-
-**Status:** Ready for automated withdrawals
-**Network:** TON Mainnet
-        `, { parse_mode: 'Markdown' });
-      } else {
-        this.bot.sendMessage(chatId, `
-❌ **Wallet Connection Failed**
-
-**Error:** ${testResult.error}
-
-Please check:
-• Mnemonic phrase has exactly 24 words
-• All words are valid BIP39 words
-• No extra spaces or special characters
-        `);
-      }
-    } catch (error) {
-      console.error('Error in handleTestWallet:', error);
-      this.bot.sendMessage(chatId, '❌ Error testing wallet. Please try again.');
-    }
-  }
 
   // Handle callback queries
   public setupCallbackHandlers() {
