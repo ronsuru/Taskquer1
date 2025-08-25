@@ -10,7 +10,7 @@ import CampaignForm from "@/components/CampaignForm";
 import WithdrawalForm from "@/components/WithdrawalForm";
 import TaskSubmissionModal from "@/components/TaskSubmissionModal";
 import AdminBalanceModal from "@/components/AdminBalanceModal";
-import { User, Wallet, Trophy, CheckCircle, Search, Plus, Filter, Settings, LogOut, User as UserIcon, Cog, Download, Bell } from "lucide-react";
+import { User, Wallet, Trophy, CheckCircle, Search, Plus, Filter, Settings, LogOut, User as UserIcon, Cog, Download, Bell, Globe, Crown } from "lucide-react";
 import type { Campaign, User as UserType, Transaction } from "@shared/schema";
 import { useTelegram } from "@/contexts/TelegramContext";
 import { TelegramAppLauncher } from "@/components/TelegramAppLauncher";
@@ -24,6 +24,9 @@ export default function Dashboard() {
   const [showProfile, setShowProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [activeSection, setActiveSection] = useState<'dashboard' | 'tonWallet' | 'browseTask' | 'transactionWithdrawal' | 'profileSettings'>('dashboard');
+  const [nickname, setNickname] = useState(telegramUser?.firstName || 'User');
+  const [isEditingNickname, setIsEditingNickname] = useState(false);
+  const [useTelegramPhoto, setUseTelegramPhoto] = useState(true);
   
   // Use Telegram user ID if available, otherwise fallback to hardcoded ID
   const userId = telegramUser?.id?.toString() || "5154336054";
@@ -49,6 +52,27 @@ export default function Dashboard() {
     alert("Logout functionality coming soon!");
   };
 
+  const handleNicknameUpdate = () => {
+    // Here you can add API call to update nickname in database
+    console.log("Nickname updated to:", nickname);
+    setIsEditingNickname(false);
+    // You can add a success message here
+    alert("Nickname updated successfully!");
+  };
+
+  const handleNicknameCancel = () => {
+    setNickname(telegramUser?.firstName || 'User');
+    setIsEditingNickname(false);
+  };
+
+  const handleProfilePhotoToggle = () => {
+    console.log("Profile photo toggle clicked!");
+    console.log("Current useTelegramPhoto:", useTelegramPhoto);
+    console.log("Telegram photo URL:", telegramUser?.photoUrl);
+    setUseTelegramPhoto(!useTelegramPhoto);
+    console.log("Setting useTelegramPhoto to:", !useTelegramPhoto);
+  };
+
   // Fetch user data
   const { data: user } = useQuery<UserType>({
     queryKey: ["/api/users", userId],
@@ -59,6 +83,8 @@ export default function Dashboard() {
   useEffect(() => {
     console.log("=== DEBUG INFO ===");
     console.log("Telegram User:", telegramUser);
+    console.log("Photo URL:", telegramUser?.photoUrl);
+    console.log("First Name:", telegramUser?.firstName);
     console.log("User ID:", userId);
     console.log("User data:", user);
     console.log("User telegramId:", user?.telegramId);
@@ -115,35 +141,75 @@ export default function Dashboard() {
     );
   }
 
-    return (
+  return (
     <div className="min-h-screen bg-slate-50 mini-app-container telegram-mini-app">
       {/* Header Section */}
       <div className="bg-white px-4 py-6 border-b border-slate-200">
         <div className="flex justify-between items-start">
           {/* Greetings */}
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-slate-900">
-              Hi {telegramUser?.firstName || 'User'} 👋
-            </h1>
-            <p className="text-slate-600 mt-1">Welcome back to Taskquer</p>
+            <div className="flex items-center space-x-3">
+                             {/* User Avatar Circle */}
+               {(() => {
+                 console.log("Rendering avatar - useTelegramPhoto:", useTelegramPhoto, "photoUrl:", telegramUser?.photoUrl);
+                 return useTelegramPhoto && telegramUser?.photoUrl ? (
+                   <img 
+                     src={telegramUser.photoUrl} 
+                     alt="Profile" 
+                     className="w-16 h-16 rounded-full border-2 border-blue-100"
+                     onError={(e) => {
+                       console.log("Avatar image failed to load:", telegramUser.photoUrl);
+                       e.currentTarget.style.display = 'none';
+                     }}
+                   />
+                 ) : (
+                   <div className="w-16 h-16 rounded-full border-2 border-blue-100 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center relative group cursor-pointer">
+                     <User className="w-8 h-8 text-white" />
+                                        {/* Toggle Button Overlay */}
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-full transition-all duration-200 flex items-center justify-center">
+                        <button
+                          onClick={handleProfilePhotoToggle}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white bg-opacity-80 rounded-full p-2"
+                          title="Toggle profile photo"
+                        >
+                          <Settings className="w-5 h-5 text-gray-600" />
+                        </button>
+                      </div>
+                   </div>
+                 );
+               })()}
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900">
+                  Hi {nickname} 👋
+                </h1>
+                <div className="flex items-center space-x-2 mt-1">
+                  <p className="text-slate-600">Welcome back to Taskquer</p>
+                  {telegramUser?.photoUrl && (
+                    <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                      {useTelegramPhoto ? '📱' : '🎨'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
           
-          {/* Profile Picture */}
-          <div className="flex items-center space-x-3">
-            {telegramUser?.photoUrl && (
-              <img 
-                src={telegramUser.photoUrl} 
-                alt="Profile" 
-                className="w-12 h-12 rounded-full border-2 border-blue-100"
-              />
-            )}
-            {/* Admin Badge */}
-            {(user?.isAdmin || user?.telegramId === "5154336054" || telegramUser?.id === 5154336054) && (
-              <Badge variant="premium" className="text-xs">
-                ADMIN
-              </Badge>
-            )}
-          </div>
+                     {/* Profile Picture */}
+           <div className="flex items-center space-x-3">
+             {useTelegramPhoto && telegramUser?.photoUrl && (
+               <img 
+                 src={telegramUser.photoUrl} 
+                 alt="Profile" 
+                 className="w-20 h-20 rounded-full border-2 border-blue-100"
+               />
+             )}
+             {/* Admin Badge */}
+             {(user?.isAdmin || user?.telegramId === "5154336054" || telegramUser?.id === 5154336054) && (
+               <Badge variant="premium" className="text-xs">
+                 ADMIN
+               </Badge>
+             )}
+           </div>
         </div>
         
         {/* Task Counts */}
@@ -161,7 +227,7 @@ export default function Dashboard() {
           {/* Ongoing Tasks */}
           <div className="text-center">
             <div className="text-3xl font-bold text-orange-600">
-              {user?.ongoingTasks || 0}
+              0
             </div>
             <div className="text-sm text-slate-600 mt-1">
               Ongoing Task
@@ -171,10 +237,8 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 mini-app-content">
-
         {/* Main Content */}
         <div className="space-y-6">
-
           {/* Dashboard Section */}
           {activeSection === 'dashboard' && (
             <div className="space-y-6">
@@ -377,20 +441,108 @@ export default function Dashboard() {
                       )}
                     </div>
                   </div>
-                   
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-3">
-                      <User className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">User ID:</span>
-                      <span className="text-sm text-muted-foreground">{telegramUser?.id}</span>
+                  
+                  <div className="space-y-4">
+                    {/* Profile Photo Section */}
+                    <div className="border-t pt-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-sm font-medium text-slate-700">Profile Photo</label>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-slate-500">
+                            {useTelegramPhoto ? 'Using Telegram photo' : 'Using placeholder'}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleProfilePhotoToggle}
+                            className="text-blue-600 hover:text-blue-700"
+                          >
+                            {useTelegramPhoto ? 'Use Placeholder' : 'Use Telegram Photo'}
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-3">
+                        <div className="w-12 h-12 rounded-full border-2 border-blue-100 overflow-hidden">
+                          {useTelegramPhoto && telegramUser?.photoUrl ? (
+                            <img 
+                              src={telegramUser.photoUrl} 
+                              alt="Profile" 
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                              <User className="w-6 h-6 text-white" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-sm text-slate-600">
+                          {useTelegramPhoto && telegramUser?.photoUrl 
+                            ? 'Your Telegram profile picture' 
+                            : 'Custom placeholder avatar'
+                          }
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Nickname Section */}
+                    <div className="border-t pt-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-sm font-medium text-slate-700">Nickname</label>
+                        {!isEditingNickname && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsEditingNickname(true)}
+                            className="text-blue-600 hover:text-blue-700"
+                          >
+                            Edit
+                          </Button>
+                        )}
+                      </div>
+                      
+                      {isEditingNickname ? (
+                        <div className="space-y-3">
+                          <input
+                            type="text"
+                            value={nickname}
+                            onChange={(e) => setNickname(e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="Enter your nickname"
+                            maxLength={20}
+                          />
+                          <div className="flex space-x-2">
+                            <Button
+                              size="sm"
+                              onClick={handleNicknameUpdate}
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              Save
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleNicknameCancel}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-3">
+                          <User className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">Nickname:</span>
+                          <span className="text-sm text-slate-600 font-medium">{nickname}</span>
+                        </div>
+                      )}
                     </div>
                     
-                    <div className="flex items-center space-x-3">
-                      <Globe className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Language:</span>
-                      <span className="text-sm text-muted-foreground">
-                        {telegramUser?.languageCode ? telegramUser.languageCode.toUpperCase() : 'Unknown'}
-                      </span>
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-3">
+                        <User className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">User ID:</span>
+                        <span className="text-sm text-muted-foreground">{userId}</span>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -488,8 +640,6 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
-
-
       </div>
 
       {/* Task Submission Modal */}
