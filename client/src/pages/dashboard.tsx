@@ -405,6 +405,53 @@ export default function Dashboard() {
                     <p className="text-orange-100">Connect your TON wallet to manage your crypto assets</p>
                   </div>
                   
+                  {/* @wallet Bot Integration */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center space-x-3 mb-3">
+                      <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <Wallet className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-blue-900">@wallet Bot</h4>
+                        <p className="text-sm text-blue-600">Official Telegram TON Wallet</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-blue-700 mb-3">
+                      Create and manage your TON wallet directly in Telegram using the official @wallet bot
+                    </p>
+                    <div className="flex space-x-2">
+                      <Button 
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        onClick={() => {
+                          if (isTelegramApp) {
+                            // Open @wallet bot in Telegram
+                            window.Telegram.WebApp.openTelegramLink('https://t.me/wallet');
+                          } else {
+                            // Fallback for non-Telegram environments
+                            window.open('https://t.me/wallet', '_blank');
+                          }
+                        }}
+                      >
+                        Open @wallet Bot
+                      </Button>
+                      <Button 
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          if (isTelegramApp) {
+                            // Open @wallet bot with start parameter
+                            window.Telegram.WebApp.openTelegramLink('https://t.me/wallet?start=taskquer');
+                          } else {
+                            window.open('https://t.me/wallet?start=taskquer', '_blank');
+                          }
+                        }}
+                      >
+                        Start with Taskquer
+                      </Button>
+                    </div>
+                  </div>
+                  
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {!walletConnected ? (
                       <Button 
