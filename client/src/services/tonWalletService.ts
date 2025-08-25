@@ -40,7 +40,7 @@ export class TONWalletService {
     try {
       // Request wallet connection
       const walletConnectionSource = {
-        universalUrl: 'https://app.tonkeeper.com/ton-connect',
+        universalLink: 'https://app.tonkeeper.com/ton-connect',
         bridgeUrl: 'https://bridge.tonapi.io/bridge'
       };
 
@@ -55,6 +55,9 @@ export class TONWalletService {
             currency: 'TON',
             isConnected: true
           };
+          
+          // Immediately fetch balance after connection
+          this.getBalance();
         } else {
           this.walletData = null;
         }
@@ -136,7 +139,7 @@ export class TONWalletService {
       if (result) {
         return {
           success: true,
-          hash: result
+          hash: result.toString()
         };
       } else {
         throw new Error('Transaction failed');
@@ -189,6 +192,31 @@ export class TONWalletService {
   // Get wallet address
   getAddress(): string | null {
     return this.walletData?.address || null;
+  }
+
+  // Refresh wallet connection status
+  async refreshConnectionStatus(): Promise<boolean> {
+    try {
+      await this.connector.restoreConnection();
+      
+      // Check if wallet is connected after restore
+      const wallet = await this.connector.wallet;
+      if (wallet) {
+        this.walletData = {
+          balance: '0',
+          address: wallet.account.address,
+          currency: 'TON',
+          isConnected: true
+        };
+        // Fetch current balance
+        await this.getBalance();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error refreshing connection status:', error);
+      return false;
+    }
   }
 
   // Format TON amount

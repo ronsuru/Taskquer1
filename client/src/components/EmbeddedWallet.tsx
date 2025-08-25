@@ -23,6 +23,19 @@ import { tonWalletService, TONTransaction } from '@/services/tonWalletService';
 import { useTelegram } from '@/contexts/TelegramContext';
 import { toast } from '@/hooks/use-toast';
 
+// Declare Telegram WebApp types
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp?: {
+        openTelegramLink: (url: string) => void;
+        showPopup: (options: any) => void;
+        onEvent: (event: string, callback: (data: any) => void) => void;
+      };
+    };
+  }
+}
+
 interface WalletState {
   isConnected: boolean;
   address: string | null;
@@ -51,20 +64,43 @@ export const EmbeddedWallet: React.FC = () => {
   // Initialize wallet state
   useEffect(() => {
     checkWalletStatus();
+  }, []);
+
+  // Listen for wallet connection changes
+  useEffect(() => {
     if (walletState.isConnected) {
       loadWalletData();
     }
   }, [walletState.isConnected]);
 
-  const checkWalletStatus = () => {
-    const walletData = tonWalletService.getWalletData();
-    if (walletData?.isConnected) {
-      setWalletState(prev => ({
-        ...prev,
-        isConnected: true,
-        address: walletData.address,
-        balance: walletData.balance
-      }));
+  const checkWalletStatus = async () => {
+    try {
+      // Try to restore connection first
+      const isRestored = await tonWalletService.refreshConnectionStatus();
+      if (isRestored) {
+        const walletData = tonWalletService.getWalletData();
+        if (walletData?.isConnected) {
+          setWalletState(prev => ({
+            ...prev,
+            isConnected: true,
+            address: walletData.address,
+            balance: walletData.balance
+          }));
+        }
+      } else {
+        // Check if wallet is already connected
+        const walletData = tonWalletService.getWalletData();
+        if (walletData?.isConnected) {
+          setWalletState(prev => ({
+            ...prev,
+            isConnected: true,
+            address: walletData.address,
+            balance: walletData.balance
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error checking wallet status:', error);
     }
   };
 
@@ -97,11 +133,33 @@ export const EmbeddedWallet: React.FC = () => {
     try {
       const success = await tonWalletService.connectWallet();
       if (success) {
-        checkWalletStatus();
-        toast({
-          title: "Wallet Connected",
-          description: "Your TON wallet has been connected successfully!",
-        });
+        // Wait a bit for the connection to be established
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Check the wallet status again
+        const walletData = tonWalletService.getWalletData();
+        if (walletData?.isConnected) {
+          setWalletState(prev => ({
+            ...prev,
+            isConnected: true,
+            address: walletData.address,
+            balance: walletData.balance || '0.00'
+          }));
+          
+          // Load wallet data immediately after connection
+          await loadWalletData();
+          
+          toast({
+            title: "Wallet Connected",
+            description: "Your TON wallet has been connected successfully!",
+          });
+        } else {
+          toast({
+            title: "Connection Failed",
+            description: "Failed to connect wallet. Please try again.",
+            variant: "destructive",
+          });
+        }
       } else {
         toast({
           title: "Connection Failed",
@@ -249,7 +307,9 @@ export const EmbeddedWallet: React.FC = () => {
                 size="sm"
                 className="mt-2"
                 onClick={() => {
-                  window.Telegram.WebApp.openTelegramLink('https://t.me/wallet?start=taskquer');
+                  if (window.Telegram?.WebApp) {
+                    window.Telegram.WebApp.openTelegramLink('https://t.me/wallet?start=taskquer');
+                  }
                 }}
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
@@ -522,7 +582,9 @@ export const EmbeddedWallet: React.FC = () => {
                 <Button
                   variant="outline"
                   onClick={() => {
-                    window.Telegram.WebApp.openTelegramLink('https://t.me/wallet?start=taskquer');
+                    if (window.Telegram?.WebApp) {
+                      window.Telegram.WebApp.openTelegramLink('https://t.me/wallet?start=taskquer');
+                    }
                   }}
                   className="w-full"
                 >
