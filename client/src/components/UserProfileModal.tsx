@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { User, Crown, Calendar, MapPin, Globe } from 'lucide-react';
+import { User, Crown, Globe } from 'lucide-react';
 
 interface TelegramUser {
   id: number;
@@ -26,6 +26,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   onClose,
   user
 }) => {
+  console.log("UserProfileModal render:", { isOpen, user });
+
   if (!user) return null;
 
   return (
@@ -83,15 +85,24 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             </CardContent>
           </Card>
 
-          {/* Actions */}
-          <div className="flex space-x-2 pt-4">
-            <Button variant="outline" className="flex-1" onClick={onClose}>
-              Close
-            </Button>
-            <Button className="flex-1">
-              Edit Profile
-            </Button>
-          </div>
+          {/* Simple Message */}
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-center text-gray-600">
+                TON Wallet integration coming soon! 🚀
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Actions */}
+        <div className="flex space-x-2 pt-4">
+          <Button variant="outline" className="flex-1" onClick={onClose}>
+            Close
+          </Button>
+          <Button className="flex-1">
+            Edit Profile
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

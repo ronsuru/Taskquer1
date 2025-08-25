@@ -29,7 +29,10 @@ export default function Dashboard() {
 
   // Handle dropdown menu actions
   const handleProfileClick = () => {
+    console.log("Profile button clicked!");
+    console.log("Current showProfile state:", showProfile);
     setShowProfile(true);
+    console.log("Setting showProfile to true");
   };
 
   const handleSettingsClick = () => {
@@ -53,12 +56,16 @@ export default function Dashboard() {
 
   // Debug logging - Remove after testing
   useEffect(() => {
-    if (user) {
-      console.log("User data:", user);
-      console.log("User telegramId:", user.telegramId);
-      console.log("Is admin check:", user.telegramId === "5154336054");
-    }
-  }, [user]);
+    console.log("=== DEBUG INFO ===");
+    console.log("Telegram User:", telegramUser);
+    console.log("User ID:", userId);
+    console.log("User data:", user);
+    console.log("User telegramId:", user?.telegramId);
+    console.log("User isAdmin:", user?.isAdmin);
+    console.log("Hardcoded admin check:", user?.telegramId === "5154336054");
+    console.log("Combined admin check:", user?.isAdmin || user?.telegramId === "5154336054");
+    console.log("==================");
+  }, [user, telegramUser, userId]);
 
   // Fetch campaigns
   const { data: campaigns = [] } = useQuery<Campaign[]>({
@@ -120,23 +127,51 @@ export default function Dashboard() {
               <h1 className="text-xl font-bold text-slate-900">TaskBot</h1>
             </div>
             <div className="flex items-center space-x-4">
-              {(user?.isAdmin || user?.telegramId === "5154336054") && (
-                <>
-                  <Button variant="default" size="sm" className="bg-red-600 hover:bg-red-700" onClick={() => setShowAdminPanel(true)}>
-                    <Settings className="w-4 h-4 mr-2" />
-                    BALANCE ADMIN
-                  </Button>
-                  <Button 
-                    variant="default" 
-                    size="sm" 
-                    className="bg-purple-600 hover:bg-purple-700"
-                    onClick={() => window.location.href = '/admin'}
-                  >
-                    <Settings className="w-4 h-4 mr-2" />
-                    ADMIN DASHBOARD
-                  </Button>
-                </>
-              )}
+                             {/* Admin Buttons - Multiple detection methods */}
+               {(user?.isAdmin || user?.telegramId === "5154336054" || telegramUser?.id === 5154336054) && (
+                 <>
+                   <Button variant="default" size="sm" className="bg-red-600 hover:bg-red-700" onClick={() => setShowAdminPanel(true)}>
+                     <Settings className="w-4 h-4 mr-2" />
+                     BALANCE ADMIN
+                   </Button>
+                   <Button 
+                     variant="default" 
+                     size="sm" 
+                     className="bg-purple-600 hover:bg-purple-700"
+                     onClick={() => window.location.href = '/admin'}
+                   >
+                     <Settings className="w-4 h-4 mr-2" />
+                     ADMIN DASHBOARD
+                   </Button>
+                 </>
+               )}
+               
+               {/* Debug Admin Button - Always show for testing */}
+               {process.env.NODE_ENV === 'development' && (
+                 <Button 
+                   variant="outline" 
+                   size="sm" 
+                   className="border-orange-500 text-orange-600"
+                   onClick={() => {
+                     console.log("Debug Admin Button Clicked");
+                     console.log("Current state:", { user, telegramUser, userId });
+                   }}
+                 >
+                   🐛 DEBUG ADMIN
+                 </Button>
+               )}
+               
+               {/* Fallback Admin Button - Show when user data is loading */}
+               {!user && telegramUser?.id === 5154336054 && (
+                 <Button 
+                   variant="outline" 
+                   size="sm" 
+                   className="border-yellow-500 text-yellow-600"
+                   onClick={() => window.location.href = '/admin'}
+                 >
+                   ⚠️ FALLBACK ADMIN
+                 </Button>
+               )}
               <div className="hidden sm:flex items-center space-x-2 bg-slate-100 rounded-lg px-3 py-2">
                 <Wallet className="w-4 h-4 text-telegram-blue" />
                 <span className="text-sm font-medium text-slate-700">
@@ -165,11 +200,11 @@ export default function Dashboard() {
                            <p className="text-sm font-medium leading-none">
                              {telegramUser?.firstName} {telegramUser?.lastName}
                            </p>
-                           {(user?.isAdmin || user?.telegramId === "5154336054") && (
-                             <Badge variant="premium" className="text-xs">
-                               ADMIN
-                             </Badge>
-                           )}
+                                                       {(user?.isAdmin || user?.telegramId === "5154336054" || telegramUser?.id === 5154336054) && (
+                              <Badge variant="premium" className="text-xs">
+                                ADMIN
+                              </Badge>
+                            )}
                          </div>
                          <p className="text-xs leading-none text-muted-foreground">
                            @{telegramUser?.username || 'user'}
@@ -188,15 +223,15 @@ export default function Dashboard() {
                       <Cog className="mr-2 h-4 w-4" />
                       <span>Settings</span>
                     </DropdownMenuItem>
-                    {(user?.isAdmin || user?.telegramId === "5154336054") && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => window.location.href = '/admin'}>
-                          <Settings className="mr-2 h-4 w-4" />
-                          <span>Admin Dashboard</span>
-                        </DropdownMenuItem>
-                      </>
-                    )}
+                                         {(user?.isAdmin || user?.telegramId === "5154336054" || telegramUser?.id === 5154336054) && (
+                       <>
+                         <DropdownMenuSeparator />
+                         <DropdownMenuItem onClick={() => window.location.href = '/admin'}>
+                           <Settings className="mr-2 h-4 w-4" />
+                           <span>Admin Dashboard</span>
+                         </DropdownMenuItem>
+                       </>
+                     )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogoutClick}>
                       <LogOut className="mr-2 h-4 w-4" />
