@@ -4,24 +4,46 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import TaskCard from "@/components/TaskCard";
 import CampaignForm from "@/components/CampaignForm";
 import WithdrawalForm from "@/components/WithdrawalForm";
 import TaskSubmissionModal from "@/components/TaskSubmissionModal";
 import AdminBalanceModal from "@/components/AdminBalanceModal";
-import { User, Wallet, Trophy, CheckCircle, Search, Plus, Filter, Settings } from "lucide-react";
+import { User, Wallet, Trophy, CheckCircle, Search, Plus, Filter, Settings, LogOut, User as UserIcon, Cog } from "lucide-react";
 import type { Campaign, User as UserType, Transaction } from "@shared/schema";
 import { useTelegram } from "@/contexts/TelegramContext";
 import { TelegramAppLauncher } from "@/components/TelegramAppLauncher";
+import { UserProfileModal } from "@/components/UserProfileModal";
 
 export default function Dashboard() {
   const { user: telegramUser, isTelegramApp, isInitialized } = useTelegram();
   const [selectedTask, setSelectedTask] = useState<Campaign | null>(null);
   const [platformFilter, setPlatformFilter] = useState("all");
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   
   // Use Telegram user ID if available, otherwise fallback to hardcoded ID
   const userId = telegramUser?.id?.toString() || "5154336054";
+
+  // Handle dropdown menu actions
+  const handleProfileClick = () => {
+    setShowProfile(true);
+  };
+
+  const handleSettingsClick = () => {
+    setShowSettings(true);
+    // You can add settings modal logic here
+    console.log("Settings clicked for user:", telegramUser?.firstName);
+  };
+
+  const handleLogoutClick = () => {
+    // You can add logout logic here
+    console.log("Logout clicked for user:", telegramUser?.firstName);
+    // For now, just show an alert
+    alert("Logout functionality coming soon!");
+  };
 
   // Fetch user data
   const { data: user } = useQuery<UserType>({
@@ -98,11 +120,22 @@ export default function Dashboard() {
               <h1 className="text-xl font-bold text-slate-900">TaskBot</h1>
             </div>
             <div className="flex items-center space-x-4">
-              {user?.telegramId === "5154336054" && (
-                <Button variant="default" size="sm" className="bg-red-600 hover:bg-red-700" onClick={() => setShowAdminPanel(true)}>
-                  <Settings className="w-4 h-4 mr-2" />
-                  BALANCE ADMIN
-                </Button>
+              {(user?.isAdmin || user?.telegramId === "5154336054") && (
+                <>
+                  <Button variant="default" size="sm" className="bg-red-600 hover:bg-red-700" onClick={() => setShowAdminPanel(true)}>
+                    <Settings className="w-4 h-4 mr-2" />
+                    BALANCE ADMIN
+                  </Button>
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="bg-purple-600 hover:bg-purple-700"
+                    onClick={() => window.location.href = '/admin'}
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    ADMIN DASHBOARD
+                  </Button>
+                </>
               )}
               <div className="hidden sm:flex items-center space-x-2 bg-slate-100 rounded-lg px-3 py-2">
                 <Wallet className="w-4 h-4 text-telegram-blue" />
@@ -118,10 +151,59 @@ export default function Dashboard() {
                     className="w-8 h-8 rounded-full"
                   />
                 )}
-                <Button variant="ghost" size="sm">
-                  <User className="w-5 h-5 text-slate-600" />
-                  {telegramUser?.firstName || 'User'}
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+                      <User className="w-5 h-5 text-slate-600" />
+                      <span>{telegramUser?.firstName || 'User'}</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                                         <DropdownMenuLabel className="font-normal">
+                       <div className="flex flex-col space-y-1">
+                         <div className="flex items-center space-x-2">
+                           <p className="text-sm font-medium leading-none">
+                             {telegramUser?.firstName} {telegramUser?.lastName}
+                           </p>
+                           {(user?.isAdmin || user?.telegramId === "5154336054") && (
+                             <Badge variant="premium" className="text-xs">
+                               ADMIN
+                             </Badge>
+                           )}
+                         </div>
+                         <p className="text-xs leading-none text-muted-foreground">
+                           @{telegramUser?.username || 'user'}
+                         </p>
+                         <p className="text-xs leading-none text-muted-foreground">
+                           ID: {telegramUser?.id}
+                         </p>
+                       </div>
+                     </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleProfileClick}>
+                      <UserIcon className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleSettingsClick}>
+                      <Cog className="mr-2 h-4 w-4" />
+                      <span>Settings</span>
+                    </DropdownMenuItem>
+                    {(user?.isAdmin || user?.telegramId === "5154336054") && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => window.location.href = '/admin'}>
+                          <Settings className="mr-2 h-4 w-4" />
+                          <span>Admin Dashboard</span>
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogoutClick}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Log out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </div>
@@ -342,6 +424,13 @@ export default function Dashboard() {
         isOpen={showAdminPanel} 
         onClose={() => setShowAdminPanel(false)} 
         userId={userId}
+      />
+
+      {/* User Profile Modal */}
+      <UserProfileModal 
+        isOpen={showProfile}
+        onClose={() => setShowProfile(false)}
+        user={telegramUser}
       />
     </div>
   );
