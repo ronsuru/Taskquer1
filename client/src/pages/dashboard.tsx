@@ -3,14 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import TaskCard from "@/components/TaskCard";
 import CampaignForm from "@/components/CampaignForm";
 import WithdrawalForm from "@/components/WithdrawalForm";
 import TaskSubmissionModal from "@/components/TaskSubmissionModal";
 import AdminBalanceModal from "@/components/AdminBalanceModal";
-import { User, Wallet, Trophy, CheckCircle, Search, Plus, Filter, Settings, LogOut, User as UserIcon, Cog } from "lucide-react";
+import { User, Wallet, Trophy, CheckCircle, Search, Plus, Filter, Settings, LogOut, User as UserIcon, Cog, Download } from "lucide-react";
 import type { Campaign, User as UserType, Transaction } from "@shared/schema";
 import { useTelegram } from "@/contexts/TelegramContext";
 import { TelegramAppLauncher } from "@/components/TelegramAppLauncher";
@@ -23,6 +23,7 @@ export default function Dashboard() {
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [activeSection, setActiveSection] = useState<'tasks' | 'campaigns' | 'transactions' | 'withdraw' | 'profile'>('tasks');
   
   // Use Telegram user ID if available, otherwise fallback to hardcoded ID
   const userId = telegramUser?.id?.toString() || "5154336054";
@@ -245,7 +246,7 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24">
         {/* Welcome Section */}
         <section className="mb-8">
           <div className="bg-gradient-to-r from-telegram-blue to-blue-600 rounded-2xl p-6 text-white relative overflow-hidden">
@@ -322,111 +323,235 @@ export default function Dashboard() {
         </section>
 
         {/* Main Content */}
-        <Tabs defaultValue="browse" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="browse">Browse Tasks</TabsTrigger>
-            <TabsTrigger value="campaigns">My Campaigns</TabsTrigger>
-            <TabsTrigger value="transactions">Transactions</TabsTrigger>
-            <TabsTrigger value="withdraw">Withdraw</TabsTrigger>
-          </TabsList>
+        <div className="space-y-6">
 
-          {/* Browse Tasks Tab */}
-          <TabsContent value="browse" className="space-y-6">
-            {/* Platform Filter */}
-            <div className="flex items-center space-x-2 mb-4">
-              <Filter className="w-4 h-4 text-slate-600" />
-              <span className="text-sm font-medium text-slate-700">Filter by Platform:</span>
-            </div>
-            <div className="flex flex-wrap gap-2 mb-6">
-              <Button 
-                variant={platformFilter === "all" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setPlatformFilter("all")}
-              >
-                All Platforms
-              </Button>
-              {["twitter", "tiktok", "facebook", "telegram"].map((platform) => (
-                <Button
-                  key={platform}
-                  variant={platformFilter === platform ? "default" : "outline"}
+                    {/* Browse Tasks Section */}
+          {activeSection === 'tasks' && (
+            <div className="space-y-6">
+              {/* Platform Filter */}
+              <div className="flex items-center space-x-2 mb-4">
+                <Filter className="w-4 h-4 text-slate-600" />
+                <span className="text-sm font-medium text-slate-700">Filter by Platform:</span>
+              </div>
+              <div className="flex flex-wrap gap-2 mb-6">
+                <Button 
+                  variant={platformFilter === "all" ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setPlatformFilter(platform)}
-                  className="capitalize"
+                  onClick={() => setPlatformFilter("all")}
                 >
-                  <i className={`${platformIcons[platform as keyof typeof platformIcons]} mr-2`} />
-                  {platform}
+                  All Platforms
                 </Button>
-              ))}
+                {["twitter", "tiktok", "facebook", "telegram"].map((platform) => (
+                  <Button
+                    key={platform}
+                    variant={platformFilter === platform ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setPlatformFilter(platform)}
+                    className="capitalize"
+                  >
+                    <i className={`${platformIcons[platform as keyof typeof platformIcons]} mr-2`} />
+                    {platform}
+                  </Button>
+                ))}
+              </div>
+
+              {/* Task Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredCampaigns.map((campaign) => (
+                  <TaskCard
+                    key={campaign.id}
+                    campaign={campaign}
+                    onStartTask={() => setSelectedTask(campaign)}
+                  />
+                ))}
+              </div>
             </div>
+          )}
 
-            {/* Task Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredCampaigns.map((campaign) => (
-                <TaskCard
-                  key={campaign.id}
-                  campaign={campaign}
-                  onStartTask={() => setSelectedTask(campaign)}
-                />
-              ))}
+          {/* Campaigns Section */}
+          {activeSection === 'campaigns' && (
+            <div className="space-y-6">
+              <CampaignForm userId={userId} />
             </div>
-          </TabsContent>
+          )}
 
-          {/* Campaigns Tab */}
-          <TabsContent value="campaigns">
-            <CampaignForm userId={userId} />
-          </TabsContent>
-
-          {/* Transactions Tab */}
-          <TabsContent value="transactions">
-            <Card>
-              <CardHeader>
-                <CardTitle>Transaction History</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {transactions.map((transaction) => (
-                  <div key={transaction.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                    <div className="flex items-center space-x-4">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        transaction.type === "reward" ? "bg-success-green bg-opacity-10" :
-                        transaction.type === "withdrawal" ? "bg-error-red bg-opacity-10" : 
-                        "bg-telegram-blue bg-opacity-10"
-                      }`}>
-                        {transaction.type === "reward" && <Plus className="w-5 h-5 text-success-green" />}
-                        {transaction.type === "withdrawal" && <Wallet className="w-5 h-5 text-error-red" />}
-                        {transaction.type === "deposit" && <Plus className="w-5 h-5 text-telegram-blue" />}
+          {/* Transactions Section */}
+          {activeSection === 'transactions' && (
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Transaction History</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {transactions.map((transaction) => (
+                    <div key={transaction.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                      <div className="flex items-center space-x-4">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          transaction.type === "reward" ? "bg-success-green bg-opacity-10" :
+                          transaction.type === "withdrawal" ? "bg-error-red bg-opacity-10" : 
+                          "bg-telegram-blue bg-opacity-10"
+                        }`}>
+                          {transaction.type === "reward" && <Plus className="w-5 h-5 text-success-green" />}
+                          {transaction.type === "withdrawal" && <Wallet className="w-5 h-5 text-error-red" />}
+                          {transaction.type === "deposit" && <Plus className="w-5 h-5 text-telegram-blue" />}
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-900 capitalize">
+                            {transaction.type === "reward" ? "Task Reward" : 
+                             transaction.type === "withdrawal" ? "Withdrawal" : "Deposit"}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {formatDate(transaction.createdAt.toString())}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-slate-900 capitalize">
-                          {transaction.type === "reward" ? "Task Reward" : 
-                           transaction.type === "withdrawal" ? "Withdrawal" : "Deposit"}
+                      <div className="text-right">
+                        <p className={`font-semibold ${
+                          transaction.type === "withdrawal" ? "text-error-red" : "text-success-green"
+                        }`}>
+                          {transaction.type === "withdrawal" ? "-" : "+"}
+                          {transaction.amount} USDT
                         </p>
-                        <p className="text-sm text-slate-600">
-                          {formatDate(transaction.createdAt.toString())}
-                        </p>
+                        <Badge variant="outline" className="text-xs">
+                          {transaction.status}
+                        </Badge>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className={`font-semibold ${
-                        transaction.type === "withdrawal" ? "text-error-red" : "text-success-green"
-                      }`}>
-                        {transaction.type === "withdrawal" ? "-" : "+"}
-                        {transaction.amount} USDT
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Withdraw Section */}
+          {activeSection === 'withdraw' && (
+            <div className="space-y-6">
+              <WithdrawalForm userId={userId} userBalance={user?.balance || "0"} />
+            </div>
+          )}
+
+          {/* Profile Section */}
+          {activeSection === 'profile' && (
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>User Profile</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center space-x-4">
+                    {telegramUser?.photoUrl && (
+                      <img 
+                        src={telegramUser.photoUrl} 
+                        alt="Profile" 
+                        className="w-16 h-16 rounded-full border-4 border-blue-100"
+                      />
+                    )}
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold">
+                        {telegramUser?.firstName} {telegramUser?.lastName}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        @{telegramUser?.username || 'No username'}
                       </p>
-                      <Badge variant="outline" className="text-xs">
-                        {transaction.status}
-                      </Badge>
+                      {telegramUser?.isPremium && (
+                        <Badge variant="premium" className="mt-1">
+                          <Crown className="w-3 h-3 mr-1" />
+                          Premium
+                        </Badge>
+                      )}
                     </div>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3">
+                      <User className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">User ID:</span>
+                      <span className="text-sm text-muted-foreground">{telegramUser?.id}</span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3">
+                      <Globe className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">Language:</span>
+                      <span className="text-sm text-muted-foreground">
+                        {telegramUser?.languageCode ? telegramUser.languageCode.toUpperCase() : 'Unknown'}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
 
-          {/* Withdraw Tab */}
-          <TabsContent value="withdraw">
-            <WithdrawalForm userId={userId} userBalance={user?.balance || "0"} />
-          </TabsContent>
-        </Tabs>
+        {/* Bottom Navigation Bar */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 z-50">
+          <div className="flex justify-around items-center max-w-md mx-auto">
+            {/* Tasks */}
+            <button
+              onClick={() => setActiveSection('tasks')}
+              className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-colors ${
+                activeSection === 'tasks' 
+                  ? 'text-blue-600 bg-blue-50' 
+                  : 'text-gray-600 hover:text-blue-600'
+              }`}
+            >
+              <CheckCircle className="w-6 h-6" />
+              <span className="text-xs font-medium">Tasks</span>
+            </button>
+
+            {/* Campaigns */}
+            <button
+              onClick={() => setActiveSection('campaigns')}
+              className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-colors ${
+                activeSection === 'campaigns' 
+                  ? 'text-blue-600 bg-blue-50' 
+                  : 'text-gray-600 hover:text-blue-600'
+              }`}
+            >
+              <Trophy className="w-6 h-6" />
+              <span className="text-xs font-medium">Campaigns</span>
+            </button>
+
+            {/* Transactions */}
+            <button
+              onClick={() => setActiveSection('transactions')}
+              className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-colors ${
+                activeSection === 'transactions' 
+                  ? 'text-blue-600 bg-blue-50' 
+                  : 'text-gray-600 hover:text-blue-600'
+              }`}
+            >
+              <Wallet className="w-6 h-6" />
+              <span className="text-xs font-medium">Transactions</span>
+            </button>
+
+            {/* Withdraw */}
+            <button
+              onClick={() => setActiveSection('withdraw')}
+              className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-colors ${
+                activeSection === 'withdraw' 
+                  ? 'text-blue-600 bg-blue-50' 
+                  : 'text-gray-600 hover:text-blue-600'
+              }`}
+            >
+              <Download className="w-6 h-6" />
+              <span className="text-xs font-medium">Withdraw</span>
+            </button>
+
+            {/* Profile */}
+            <button
+              onClick={() => setActiveSection('profile')}
+              className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-colors ${
+                activeSection === 'profile' 
+                  ? 'text-blue-600 bg-blue-50' 
+                  : 'text-gray-600 hover:text-blue-600'
+              }`}
+            >
+              <User className="w-6 h-6" />
+              <span className="text-xs font-medium">Profile</span>
+            </button>
+          </div>
+        </div>
 
         {/* Support Section */}
         <section className="mt-8">
