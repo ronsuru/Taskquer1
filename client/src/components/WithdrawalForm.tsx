@@ -139,7 +139,7 @@ export default function WithdrawalForm({ userId, userBalance }: WithdrawalFormPr
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="absolute right-2 top-1 h-8 px-3 text-xs"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-3 px-2 text-xs text-green-600 hover:text-green-700 font-medium transition-all duration-200 focus:outline-none focus:ring-0 focus:ring-offset-0 focus:shadow-none hover:bg-transparent hover:border-none hover:shadow-none"
                 onClick={handleMaxWithdrawal}
               >
                 MAX
@@ -169,9 +169,9 @@ export default function WithdrawalForm({ userId, userBalance }: WithdrawalFormPr
           <div className="bg-warning-amber bg-opacity-10 rounded-lg p-4">
             <div className="flex items-start space-x-2">
               <i className="fas fa-exclamation-triangle text-warning-amber mt-0.5"></i>
-              <div className="text-sm text-amber-800">
+              <div className="text-sm text-white">
                 <p className="font-medium mb-1">Important Notes:</p>
-                <ul className="text-amber-700 text-xs space-y-1">
+                <ul className="text-white text-xs space-y-1">
                   <li>• Minimum withdrawal amount is 1 USDT</li>
                   <li>• Processing time: 5-15 minutes on TON Network</li>
                   <li>• Double-check your wallet address - transactions are irreversible</li>
@@ -183,7 +183,7 @@ export default function WithdrawalForm({ userId, userBalance }: WithdrawalFormPr
 
           <Button
             type="submit"
-            className="w-full bg-success-green hover:bg-green-600"
+            className="w-full bg-success-green hover:bg-green-600 text-white"
             disabled={withdrawMutation.isPending}
           >
             {withdrawMutation.isPending ? "Processing..." : "Process Withdrawal"}

@@ -42,15 +42,7 @@
   }
 }
 
-/* Force portrait orientation for optimal mini-app experience */
-@media screen and (orientation: landscape) {
-  .mini-app-container {
-    transform: rotate(90deg);
-    transform-origin: center center;
-    width: 100vh;
-    height: 100vw;
-  }
-}
+/* Remove forced rotation - let the app handle orientation naturally */
 
 /* Telegram Web App specific optimizations */
 .telegram-mini-app {

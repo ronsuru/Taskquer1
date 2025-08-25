@@ -27,7 +27,7 @@ export default function Dashboard() {
   const [showProfile, setShowProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [activeSection, setActiveSection] = useState<'dashboard' | 'tonWallet' | 'browseTask' | 'transactionWithdrawal' | 'profileSettings'>('dashboard');
-  const [nickname, setNickname] = useState(telegramUser?.firstName || '');
+  const [nickname, setNickname] = useState('');
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [useTelegramPhoto, setUseTelegramPhoto] = useState(() => {
     // Try to get the saved preference from localStorage
@@ -188,10 +188,10 @@ export default function Dashboard() {
 
   // Update nickname when Telegram user data changes
   useEffect(() => {
-    if (telegramUser?.firstName && !nickname) {
+    if (telegramUser?.firstName) {
       setNickname(telegramUser.firstName);
     }
-  }, [telegramUser?.firstName, nickname]);
+  }, [telegramUser?.firstName]);
 
   // Update wallet address when user data changes
   useEffect(() => {

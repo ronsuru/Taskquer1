@@ -52,15 +52,27 @@ export class TONWalletService {
         return true;
       }
 
-      // Try TON Connect first
-      try {
-        // Request wallet connection
-        const walletConnectionSource = {
-          universalLink: 'https://app.tonkeeper.com/ton-connect',
-          bridgeUrl: 'https://bridge.tonapi.io/bridge'
+      // Check if any TON wallet is available
+      const availableWallets = await this.connector.getWallets();
+      console.log('Available wallets:', availableWallets);
+      
+      if (availableWallets.length === 0) {
+        console.log('No TON wallets detected, using demo mode');
+        // Fallback: Create a mock connection for testing
+        this.walletData = {
+          balance: '0.00',
+          address: 'EQD4FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_0t',
+          currency: 'TON',
+          isConnected: true
         };
+        
+        console.log('Demo wallet connected:', this.walletData);
+        return true;
+      }
 
-        console.log('Connecting to wallet with source:', walletConnectionSource);
+      // Try TON Connect with available wallets
+      try {
+        console.log('Attempting to connect to available TON wallet...');
         
         // Set up status change listener before connecting
         this.connector.onStatusChange((wallet) => {
@@ -82,12 +94,12 @@ export class TONWalletService {
           }
         });
 
-        // Attempt connection
-        await this.connector.connect(walletConnectionSource);
+        // Attempt connection to the first available wallet
+        await this.connector.connect();
         console.log('Connection request sent successfully');
         
         // Wait a bit for the connection to be established
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
         // Check if connection was successful
         const wallet = await this.connector.wallet;
@@ -96,20 +108,9 @@ export class TONWalletService {
           return true;
         }
       } catch (tonConnectError) {
-        console.log('TON Connect failed, trying fallback method:', tonConnectError);
+        console.log('TON Connect failed:', tonConnectError);
+        throw new Error('Failed to connect to TON wallet. Please ensure you have a TON wallet installed.');
       }
-
-      // Fallback: Create a mock connection for testing
-      console.log('Using fallback connection method');
-      this.walletData = {
-        balance: '0.00',
-        address: 'EQD4FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_0t',
-        currency: 'TON',
-        isConnected: true
-      };
-      
-      console.log('Fallback wallet connected:', this.walletData);
-      return true;
       
     } catch (error) {
       console.error('Failed to connect wallet:', error);
