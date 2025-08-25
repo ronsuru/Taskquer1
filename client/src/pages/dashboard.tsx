@@ -16,6 +16,8 @@ import { useTelegram } from "@/contexts/TelegramContext";
 import { TelegramAppLauncher } from "@/components/TelegramAppLauncher";
 import { UserProfileModal } from "@/components/UserProfileModal";
 import { tonWalletService } from "@/services/tonWalletService";
+import { EmbeddedWallet } from "@/components/EmbeddedWallet";
+import { EnhancedWalletIntegration } from "@/components/EnhancedWalletIntegration";
 
 export default function Dashboard() {
   const { user: telegramUser, isTelegramApp, isInitialized } = useTelegram();
@@ -417,7 +419,7 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <p className="text-sm text-blue-700 mb-3">
-                      Create and manage your TON wallet directly in Telegram using the official @wallet bot
+                      Create and manage your TON wallet directly within this mini-app
                     </p>
                     <div className="flex space-x-2">
                       <Button 
@@ -425,77 +427,61 @@ export default function Dashboard() {
                         className="bg-blue-600 hover:bg-blue-700 text-white"
                         onClick={() => {
                           if (isTelegramApp) {
-                            // Open @wallet bot in Telegram
-                            window.Telegram.WebApp.openTelegramLink('https://t.me/wallet');
+                            // Open @wallet mini-app directly
+                            window.Telegram.WebApp.showPopup({
+                              title: 'TON Wallet',
+                              message: 'Opening @wallet mini-app...',
+                              buttons: [
+                                {
+                                  type: 'default',
+                                  text: 'Open Wallet',
+                                  id: 'open_wallet'
+                                }
+                              ]
+                            });
+                            
+                            // Handle button click
+                            window.Telegram.WebApp.onEvent('popupClosed', (buttonId) => {
+                              if (buttonId === 'open_wallet') {
+                                // Open the @wallet mini-app
+                                window.Telegram.WebApp.openTelegramLink('https://t.me/wallet?start=taskquer');
+                              }
+                            });
                           } else {
                             // Fallback for non-Telegram environments
-                            window.open('https://t.me/wallet', '_blank');
+                            window.open('https://t.me/wallet?start=taskquer', '_blank');
                           }
                         }}
                       >
-                        Open @wallet Bot
+                        Open Wallet Mini-App
                       </Button>
                       <Button 
                         size="sm"
                         variant="outline"
                         onClick={() => {
                           if (isTelegramApp) {
-                            // Open @wallet bot with start parameter
-                            window.Telegram.WebApp.openTelegramLink('https://t.me/wallet?start=taskquer');
+                            // Try to open @wallet mini-app directly
+                            try {
+                              // This attempts to open the @wallet mini-app
+                              window.Telegram.WebApp.openTelegramLink('https://t.me/wallet?start=taskquer');
+                            } catch (error) {
+                              console.log('Direct mini-app opening not supported, using fallback');
+                              // Fallback to bot chat
+                              window.Telegram.WebApp.openTelegramLink('https://t.me/wallet?start=taskquer');
+                            }
                           } else {
                             window.open('https://t.me/wallet?start=taskquer', '_blank');
                           }
                         }}
                       >
-                        Start with Taskquer
+                        Quick Access
                       </Button>
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {!walletConnected ? (
-                      <Button 
-                        className="w-full" 
-                        variant="outline"
-                        onClick={handleConnectWallet}
-                        disabled={isWalletConnecting}
-                      >
-                        <Wallet className="w-4 h-4 mr-2" />
-                        {isWalletConnecting ? 'Connecting...' : 'Connect Wallet'}
-                      </Button>
-                    ) : (
-                      <Button 
-                        className="w-full" 
-                        variant="outline"
-                        onClick={handleDisconnectWallet}
-                      >
-                        <Wallet className="w-4 h-4 mr-2" />
-                        Disconnect Wallet
-                      </Button>
-                    )}
-                    <Button 
-                      className="w-full" 
-                      variant="outline"
-                      disabled={!walletConnected}
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Send/Receive
-                    </Button>
-                  </div>
+                  {/* Embedded Wallet Component */}
+                  <EnhancedWalletIntegration />
                   
-                  {/* Wallet Status */}
-                  {walletConnected && walletData && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="text-sm font-medium text-green-800">Wallet Connected</span>
-                      </div>
-                      <div className="text-sm text-green-700">
-                        <p><strong>Address:</strong> {walletData.address?.slice(0, 8)}...{walletData.address?.slice(-6)}</p>
-                        <p><strong>Balance:</strong> {walletData.balance} {walletData.currency}</p>
-                      </div>
-                    </div>
-                  )}
               </CardContent>
             </Card>
           </div>
