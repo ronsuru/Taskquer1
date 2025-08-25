@@ -15,6 +15,7 @@ import type { Campaign, User as UserType, Transaction } from "@shared/schema";
 import { useTelegram } from "@/contexts/TelegramContext";
 import { TelegramAppLauncher } from "@/components/TelegramAppLauncher";
 import { UserProfileModal } from "@/components/UserProfileModal";
+import { tonWalletService } from "@/services/tonWalletService";
 
 export default function Dashboard() {
   const { user: telegramUser, isTelegramApp, isInitialized } = useTelegram();
@@ -39,8 +40,26 @@ export default function Dashboard() {
   });
   const [editingSocial, setEditingSocial] = useState<string | null>(null);
   
+  // Wallet connection state
+  const [isWalletConnecting, setIsWalletConnecting] = useState(false);
+  const [walletConnected, setWalletConnected] = useState(false);
+  const [walletData, setWalletData] = useState<any>(null);
+  
   // Use Telegram user ID if available, otherwise fallback to hardcoded ID
   const userId = telegramUser?.id?.toString() || "5154336054";
+
+  // Check initial wallet connection status
+  useEffect(() => {
+    const checkWalletStatus = () => {
+      const data = tonWalletService.getWalletData();
+      if (data?.isConnected) {
+        setWalletConnected(true);
+        setWalletData(data);
+      }
+    };
+    
+    checkWalletStatus();
+  }, []);
 
   // Handle dropdown menu actions
   const handleProfileClick = () => {
@@ -95,6 +114,40 @@ export default function Dashboard() {
   const handleWalletAddressCancel = () => {
     setWalletAddress(user?.walletAddress || '');
     setIsEditingWallet(false);
+  };
+
+  // Wallet connection functions
+  const handleConnectWallet = async () => {
+    try {
+      setIsWalletConnecting(true);
+      const success = await tonWalletService.connectWallet();
+      
+      if (success) {
+        setWalletConnected(true);
+        const data = tonWalletService.getWalletData();
+        setWalletData(data);
+        console.log('Wallet connected successfully:', data);
+      } else {
+        console.error('Failed to connect wallet');
+        alert('Failed to connect wallet. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error connecting wallet:', error);
+      alert('Error connecting wallet. Please try again.');
+    } finally {
+      setIsWalletConnecting(false);
+    }
+  };
+
+  const handleDisconnectWallet = async () => {
+    try {
+      await tonWalletService.disconnectWallet();
+      setWalletConnected(false);
+      setWalletData(null);
+      console.log('Wallet disconnected successfully');
+    } catch (error) {
+      console.error('Error disconnecting wallet:', error);
+    }
   };
 
   const handleSocialLinkUpdate = (platform: string) => {
@@ -198,98 +251,100 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 mini-app-container telegram-mini-app">
-      {/* Header Section */}
-      <div className="bg-white px-4 py-6 border-b border-slate-200">
-        <div className="flex justify-between items-start">
-          {/* Greetings */}
-          <div className="flex-1">
-            <div className="flex items-center space-x-3">
-                             {/* User Avatar Circle */}
-               {(() => {
-                 console.log("Rendering avatar - useTelegramPhoto:", useTelegramPhoto, "photoUrl:", telegramUser?.photoUrl);
-                 return useTelegramPhoto && telegramUser?.photoUrl ? (
-                   <img 
-                     src={telegramUser.photoUrl} 
-                     alt="Profile" 
-                     className="w-16 h-16 rounded-full border-2 border-blue-100"
-                     onError={(e) => {
-                       console.log("Avatar image failed to load:", telegramUser.photoUrl);
-                       e.currentTarget.style.display = 'none';
-                     }}
-                   />
-                 ) : (
-                   <div className="w-16 h-16 rounded-full border-2 border-blue-100 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center relative group cursor-pointer">
-                     <User className="w-8 h-8 text-white" />
-                                        {/* Toggle Button Overlay */}
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-full transition-all duration-200 flex items-center justify-center">
-                        <button
-                          onClick={handleProfilePhotoToggle}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white bg-opacity-80 rounded-full p-2"
-                          title="Toggle profile photo"
-                        >
-                          <Settings className="w-5 h-5 text-gray-600" />
-                        </button>
-              </div>
-            </div>
-                 );
-               })()}
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900">
-                  Hi {nickname} 👋
-                </h1>
-                <div className="flex items-center space-x-2 mt-1">
-                  <p className="text-slate-600">Welcome back to Taskquer</p>
-                  {telegramUser?.photoUrl && (
-                    <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
-                      {useTelegramPhoto ? '📱' : '🎨'}
-                    </span>
-                  )}
-              </div>
-            </div>
-          </div>
-        </div>
-          
-                     {/* Profile Picture */}
-           <div className="flex items-center space-x-3">
-             {useTelegramPhoto && telegramUser?.photoUrl && (
-               <img 
-                 src={telegramUser.photoUrl} 
-                 alt="Profile" 
-                 className="w-20 h-20 rounded-full border-2 border-blue-100"
-               />
-             )}
-             {/* Admin Badge */}
-             {(user?.isAdmin || user?.telegramId === "5154336054" || telegramUser?.id === 5154336054) && (
-               <Badge variant="premium" className="text-xs">
-                 ADMIN
-               </Badge>
-             )}
-           </div>
-        </div>
-        
-        {/* Task Counts */}
-        <div className="flex space-x-6 mt-6">
-          {/* Total Finished Tasks */}
-          <div className="text-center">
-            <div className="text-3xl font-bold text-blue-600">
-              {user?.completedTasks || 0}
-            </div>
-            <div className="text-sm text-slate-600 mt-1">
-              Total Task Completed
-            </div>
-          </div>
-          
-          {/* Ongoing Tasks */}
-          <div className="text-center">
-            <div className="text-3xl font-bold text-orange-600">
-              0
-            </div>
-            <div className="text-sm text-slate-600 mt-1">
-              Ongoing Task
-            </div>
-                  </div>
-                  </div>
+      {/* Header Section - Only show when Dashboard is active */}
+      {activeSection === 'dashboard' && (
+        <div className="bg-white px-4 py-6 border-b border-slate-200">
+          <div className="flex justify-between items-start">
+            {/* Greetings */}
+            <div className="flex-1">
+              <div className="flex items-center space-x-3">
+                               {/* User Avatar Circle */}
+                 {(() => {
+                   console.log("Rendering avatar - useTelegramPhoto:", useTelegramPhoto, "photoUrl:", telegramUser?.photoUrl);
+                   return useTelegramPhoto && telegramUser?.photoUrl ? (
+                     <img 
+                       src={telegramUser.photoUrl} 
+                       alt="Profile" 
+                       className="w-16 h-16 rounded-full border-2 border-blue-100"
+                       onError={(e) => {
+                         console.log("Avatar image failed to load:", telegramUser.photoUrl);
+                         e.currentTarget.style.display = 'none';
+                       }}
+                     />
+                   ) : (
+                     <div className="w-16 h-16 rounded-full border-2 border-blue-100 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center relative group cursor-pointer">
+                       <User className="w-8 h-8 text-white" />
+                                          {/* Toggle Button Overlay */}
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-full transition-all duration-200 flex items-center justify-center">
+                          <button
+                            onClick={handleProfilePhotoToggle}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white bg-opacity-80 rounded-full p-2"
+                            title="Toggle profile photo"
+                          >
+                            <Settings className="w-5 h-5 text-gray-600" />
+                          </button>
                 </div>
+              </div>
+                   );
+                 })()}
+                <div>
+                  <h1 className="text-2xl font-bold text-slate-900">
+                    Hi {nickname} 👋
+                  </h1>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <p className="text-slate-600">Welcome back to Taskquer</p>
+                    {telegramUser?.photoUrl && (
+                      <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                        {useTelegramPhoto ? '📱' : '🎨'}
+                      </span>
+                    )}
+                </div>
+              </div>
+            </div>
+          </div>
+            
+                       {/* Profile Picture */}
+             <div className="flex items-center space-x-3">
+               {useTelegramPhoto && telegramUser?.photoUrl && (
+                 <img 
+                   src={telegramUser.photoUrl} 
+                   alt="Profile" 
+                   className="w-20 h-20 rounded-full border-2 border-blue-100"
+                 />
+               )}
+               {/* Admin Badge */}
+               {(user?.isAdmin || user?.telegramId === "5154336054" || telegramUser?.id === 5154336054) && (
+                 <Badge variant="premium" className="text-xs">
+                   ADMIN
+                 </Badge>
+               )}
+             </div>
+          </div>
+          
+          {/* Task Counts */}
+          <div className="flex space-x-6 mt-6">
+            {/* Total Finished Tasks */}
+            <div className="text-center">
+              <div className="text-3xl font-bold text-blue-600">
+                {user?.completedTasks || 0}
+              </div>
+              <div className="text-sm text-slate-600 mt-1">
+                Total Task Completed
+              </div>
+            </div>
+            
+            {/* Ongoing Tasks */}
+            <div className="text-center">
+              <div className="text-3xl font-bold text-orange-600">
+                0
+              </div>
+              <div className="text-sm text-slate-600 mt-1">
+                Ongoing Task
+              </div>
+                    </div>
+                    </div>
+                  </div>
+        )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 mini-app-content">
         {/* Main Content */}
@@ -351,15 +406,49 @@ export default function Dashboard() {
                   </div>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Button className="w-full" variant="outline">
-                      <Wallet className="w-4 h-4 mr-2" />
-                      Connect Wallet
-                    </Button>
-                    <Button className="w-full" variant="outline">
+                    {!walletConnected ? (
+                      <Button 
+                        className="w-full" 
+                        variant="outline"
+                        onClick={handleConnectWallet}
+                        disabled={isWalletConnecting}
+                      >
+                        <Wallet className="w-4 h-4 mr-2" />
+                        {isWalletConnecting ? 'Connecting...' : 'Connect Wallet'}
+                      </Button>
+                    ) : (
+                      <Button 
+                        className="w-full" 
+                        variant="outline"
+                        onClick={handleDisconnectWallet}
+                      >
+                        <Wallet className="w-4 h-4 mr-2" />
+                        Disconnect Wallet
+                      </Button>
+                    )}
+                    <Button 
+                      className="w-full" 
+                      variant="outline"
+                      disabled={!walletConnected}
+                    >
                       <Download className="w-4 h-4 mr-2" />
                       Send/Receive
                     </Button>
-                </div>
+                  </div>
+                  
+                  {/* Wallet Status */}
+                  {walletConnected && walletData && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-sm font-medium text-green-800">Wallet Connected</span>
+                      </div>
+                      <div className="text-sm text-green-700">
+                        <p><strong>Address:</strong> {walletData.address?.slice(0, 8)}...{walletData.address?.slice(-6)}</p>
+                        <p><strong>Balance:</strong> {walletData.balance} {walletData.currency}</p>
+                      </div>
+                    </div>
+                  )}
               </CardContent>
             </Card>
           </div>
@@ -501,20 +590,15 @@ export default function Dashboard() {
                           <label className="text-sm font-medium text-slate-700">Profile Photo</label>
                           <div className="flex items-center space-x-3">
                             <span className="text-sm text-slate-600">Use Telegram Photo</span>
-                                                         <button
-                               onClick={handleProfilePhotoToggle}
-                               className={`relative inline-flex h-5 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                                 useTelegramPhoto ? 'bg-blue-600' : 'bg-gray-100'
-                               }`}
-                             >
-                               <span
-                                 className={`inline-block h-4 w-4 transform rounded-full transition-transform ${
-                                   useTelegramPhoto ? 'translate-x-6' : 'translate-x-1'
-                                 } ${
-                                   useTelegramPhoto ? 'bg-white' : 'bg-gray-700'
-                                 }`}
-                               />
-                             </button>
+                            <label className="inline-flex items-center cursor-pointer">
+                              <input 
+                                type="checkbox" 
+                                className="sr-only peer focus:outline-none" 
+                                checked={useTelegramPhoto}
+                                onChange={handleProfilePhotoToggle}
+                              />
+                              <div className="relative w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
                           </div>
                         </div>
                       </div>

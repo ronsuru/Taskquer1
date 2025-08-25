@@ -31,7 +31,7 @@ export class TONWalletService {
   constructor() {
     // Initialize TonConnect with your app configuration
     this.connector = new TonConnect({
-      manifestUrl: 'https://your-app.com/tonconnect-manifest.json'
+      manifestUrl: '/tonconnect-manifest.json'
     });
   }
 
