@@ -131,13 +131,18 @@ export const EmbeddedWallet: React.FC = () => {
     setWalletState(prev => ({ ...prev, isLoading: true }));
     
     try {
+      console.log('Attempting to connect wallet...');
       const success = await tonWalletService.connectWallet();
+      console.log('Connection result:', success);
+      
       if (success) {
         // Wait a bit for the connection to be established
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         // Check the wallet status again
         const walletData = tonWalletService.getWalletData();
+        console.log('Wallet data after connection:', walletData);
+        
         if (walletData?.isConnected) {
           setWalletState(prev => ({
             ...prev,
@@ -149,21 +154,24 @@ export const EmbeddedWallet: React.FC = () => {
           // Load wallet data immediately after connection
           await loadWalletData();
           
+          const connectionMethod = tonWalletService.getConnectionMethod();
           toast({
             title: "Wallet Connected",
-            description: "Your TON wallet has been connected successfully!",
+            description: `Your TON wallet has been connected successfully! (${connectionMethod})`,
           });
         } else {
+          console.log('Wallet not connected after successful connection attempt');
           toast({
             title: "Connection Failed",
-            description: "Failed to connect wallet. Please try again.",
+            description: "Wallet connected but status not updated. Please refresh and try again.",
             variant: "destructive",
           });
         }
       } else {
+        console.log('Wallet connection returned false');
         toast({
           title: "Connection Failed",
-          description: "Failed to connect wallet. Please try again.",
+          description: "Failed to connect wallet. Please check if you have a TON wallet installed.",
           variant: "destructive",
         });
       }
@@ -171,7 +179,7 @@ export const EmbeddedWallet: React.FC = () => {
       console.error('Wallet connection error:', error);
       toast({
         title: "Connection Error",
-        description: "An error occurred while connecting your wallet.",
+        description: error instanceof Error ? error.message : "An error occurred while connecting your wallet.",
         variant: "destructive",
       });
     } finally {
@@ -282,7 +290,6 @@ export const EmbeddedWallet: React.FC = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Wallet className="h-5 w-5" />
-            TON Wallet
           </CardTitle>
         </CardHeader>
         <CardContent className="text-center py-8">
@@ -291,6 +298,11 @@ export const EmbeddedWallet: React.FC = () => {
           <p className="text-gray-600 mb-6">
             Connect your TON wallet to manage your funds, send transactions, and view your balance.
           </p>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+            <p className="text-sm text-yellow-800">
+              <strong>Note:</strong> If you don't have a TON wallet installed, the app will use demo mode for testing purposes.
+            </p>
+          </div>
           <Button 
             onClick={handleConnectWallet}
             disabled={walletState.isLoading}
@@ -301,7 +313,7 @@ export const EmbeddedWallet: React.FC = () => {
           
           {isTelegramApp && (
             <div className="mt-4 text-sm text-gray-500">
-              <p>Or use the official @wallet bot:</p>
+                             <p>Or if you don't have TON wallet:</p>
               <Button
                 variant="outline"
                 size="sm"
@@ -324,17 +336,16 @@ export const EmbeddedWallet: React.FC = () => {
 
   return (
     <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Wallet className="h-5 w-5" />
-            TON Wallet
-          </div>
-          <Badge variant="secondary" className="bg-green-100 text-green-800">
-            Connected
-          </Badge>
-        </CardTitle>
-      </CardHeader>
+              <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Wallet className="h-5 w-5" />
+            </div>
+            <Badge variant="secondary" className="bg-green-100 text-green-800">
+              Connected
+            </Badge>
+          </CardTitle>
+        </CardHeader>
       <CardContent>
         {/* Balance Display */}
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 mb-6">
@@ -346,6 +357,19 @@ export const EmbeddedWallet: React.FC = () => {
             <p className="text-sm text-gray-500 mt-1">
               ≈ ${(parseFloat(walletState.balance) * 2.5).toFixed(2)} USD
             </p>
+          </div>
+        </div>
+
+        {/* Connection Status */}
+        <div className="bg-blue-50 rounded-lg p-3 mb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-blue-600 mb-1">Connection Method</p>
+              <p className="font-medium text-blue-900">{tonWalletService.getConnectionMethod()}</p>
+            </div>
+            <Badge variant="outline" className="text-blue-600 border-blue-300">
+              {tonWalletService.isTONConnectAvailable() ? 'TON Connect Ready' : 'Demo Mode'}
+            </Badge>
           </div>
         </div>
 

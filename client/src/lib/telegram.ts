@@ -20,14 +20,17 @@ export const initTelegramApp = () => {
 // Get Telegram user data
 export const getTelegramUser = () => {
   if (WebApp.initDataUnsafe?.user) {
+    const user = WebApp.initDataUnsafe.user;
+    console.log('Raw Telegram user data:', user);
+    
     return {
-      id: WebApp.initDataUnsafe.user.id,
-      firstName: WebApp.initDataUnsafe.user.first_name,
-      lastName: WebApp.initDataUnsafe.user.last_name,
-      username: WebApp.initDataUnsafe.user.username,
-      languageCode: WebApp.initDataUnsafe.user.language_code,
-      isPremium: WebApp.initDataUnsafe.user.is_premium,
-      photoUrl: WebApp.initDataUnsafe.user.photo_url,
+      id: user.id,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      username: user.username,
+      languageCode: user.language_code,
+      isPremium: user.is_premium,
+      photoUrl: user.photo_url || null,
     };
   }
   return null;
@@ -83,7 +86,7 @@ export const closeTelegramApp = () => {
 
 // Check if running in Telegram
 export const isTelegramWebApp = () => {
-  return typeof window !== 'undefined' && window.Telegram?.WebApp;
+  return typeof window !== 'undefined' && (window.Telegram?.WebApp || WebApp.initDataUnsafe?.user);
 };
 
 // Get Telegram init data for validation

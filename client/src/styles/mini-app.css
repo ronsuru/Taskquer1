@@ -27,6 +27,11 @@
   margin: 0;
   padding: 0;
   overflow-x: hidden;
+  /* Handle scrollbar behavior */
+  overflow-y: auto;
+  scrollbar-gutter: auto;
+  /* Prevent any layout shifts */
+  position: relative;
 }
 
 /* Optimize for mobile viewport */
@@ -64,6 +69,79 @@
   padding: 0;
   margin: 0;
   box-sizing: border-box;
+  /* Ensure content doesn't get hidden behind bottom navigation */
+  padding-bottom: 80px;
+  /* Prevent horizontal scroll */
+  overflow-x: hidden;
+  /* Handle vertical scrolling with floating scrollbar */
+  overflow-y: scroll;
+  /* Remove scrollbar gutter to make scrollbar float */
+  scrollbar-gutter: auto;
+  /* Ensure smooth scrolling */
+  -webkit-overflow-scrolling: touch;
+  /* Custom scrollbar styling for floating effect - iOS Style */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+}
+
+/* Custom scrollbar styling for WebKit browsers (Chrome, Safari, Edge) - iOS Style */
+.mini-app-content::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+
+.mini-app-content::-webkit-scrollbar-track {
+  background: transparent;
+  border: none;
+  margin: 0;
+}
+
+.mini-app-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+  min-height: 40px;
+  /* Make it truly float */
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+}
+
+.mini-app-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.4);
+  background-clip: content-box;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.15);
+}
+
+.mini-app-content::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 0, 0, 0.5);
+  background-clip: content-box;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+}
+
+/* iOS-style scrollbar for mobile devices */
+@media (max-width: 768px) {
+  .mini-app-content::-webkit-scrollbar {
+    width: 6px;
+    background: transparent;
+  }
+  
+  .mini-app-content::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 3px;
+    min-height: 30px;
+    /* Make it truly float on mobile */
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  .mini-app-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.35);
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.15);
+  }
+  
+  .mini-app-content::-webkit-scrollbar-thumb:active {
+    background: rgba(0, 0, 0, 0.45);
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+  }
 }
 
 /* Bottom navigation optimization for mini-app */
@@ -78,6 +156,15 @@
   z-index: 1000;
   padding: 8px 16px;
   box-sizing: border-box;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  /* Ensure navigation stays in place regardless of scrollbar */
+  transform: translateZ(0);
+  /* Force the navigation to stay in place */
+  position: fixed !important;
+  /* Prevent any margin adjustments */
+  margin: 0 !important;
+  /* Ensure it's always at the bottom */
+  bottom: 0 !important;
 }
 
 /* Responsive adjustments for different screen sizes */
@@ -100,6 +187,7 @@
   
   .mini-app-content {
     padding: 0 24px;
+    padding-bottom: 100px;
   }
   
   .mini-app-bottom-nav {
@@ -137,15 +225,26 @@
     padding-left: max(16px, env(safe-area-inset-left));
     padding-right: max(16px, env(safe-area-inset-right));
     padding-bottom: max(8px, env(safe-area-inset-bottom));
+    /* Ensure navigation is above safe area */
+    bottom: max(0px, env(safe-area-inset-bottom));
+  }
+  
+  .mini-app-content {
+    /* Adjust content padding for safe area */
+    padding-bottom: max(80px, calc(80px + env(safe-area-inset-bottom)));
   }
 }
 
-/* Prevent horizontal scrolling */
+/* Prevent horizontal scrolling and scrollbar layout shifts */
 body, html {
   overflow-x: hidden;
   width: 100%;
   margin: 0;
   padding: 0;
+  /* Remove scrollbar gutter to allow floating scrollbars */
+  scrollbar-gutter: auto;
+  /* Allow vertical scrolling */
+  overflow-y: auto;
 }
 
 /* Optimize touch targets for mobile */
@@ -159,4 +258,34 @@ button, .nav-item {
 .mini-app-container {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+}
+
+/* Additional overflow prevention for specific pages */
+.mini-app-content > div {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Ensure navigation bar is completely stable */
+.mini-app-bottom-nav {
+  /* Force hardware acceleration */
+  will-change: transform;
+  /* Ensure it's always rendered at the same position */
+  backface-visibility: hidden;
+}
+
+/* Ensure gradient boxes don't cause overflow */
+.bg-gradient-to-r {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Fix for px-6 padding causing overflow - but preserve margins */
+.space-y-6.px-6 {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }

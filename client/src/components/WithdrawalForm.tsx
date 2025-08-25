@@ -103,28 +103,13 @@ export default function WithdrawalForm({ userId, userBalance }: WithdrawalFormPr
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Withdraw Earnings</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="mb-6">
-          <div className="bg-success-green bg-opacity-10 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-success-green font-medium">Available Balance</p>
-                <p className="text-2xl font-bold text-success-green">{userBalance} USDT</p>
-              </div>
-              <div className="w-12 h-12 bg-success-green bg-opacity-20 rounded-full flex items-center justify-center">
-                <Coins className="w-6 h-6 text-success-green" />
-              </div>
-            </div>
-          </div>
-        </div>
+         <Card>
+       <CardContent>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="wallet">TON Wallet Address</Label>
+
+                 <form onSubmit={handleSubmit} className="space-y-6">
+           <div className="space-y-2 pt-4">
+             <Label htmlFor="wallet">TON Wallet Address</Label>
             <Input
               id="wallet"
               placeholder="EQBUNIp7rk76qbgMPq8vlW8fF4l56IcrOwzEpVjHFfzUY3Yv"

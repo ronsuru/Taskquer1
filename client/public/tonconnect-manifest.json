@@ -1,16 +1,16 @@
 {
-  "url": "https://your-app-domain.com",
+  "url": "http://localhost:5000",
   "name": "Taskquer TON Wallet",
-  "iconUrl": "https://your-app-domain.com/icon-192.png",
-  "termsOfUseUrl": "https://your-app-domain.com/terms",
-  "privacyPolicyUrl": "https://your-app-domain.com/privacy",
+  "iconUrl": "http://localhost:5000/icon-192.png",
+  "termsOfUseUrl": "http://localhost:5000/terms",
+  "privacyPolicyUrl": "http://localhost:5000/privacy",
   "features": [
     "SendTransaction"
   ],
   "dApp": {
     "name": "Taskquer",
     "description": "A decentralized task marketplace built on TON blockchain",
-    "url": "https://your-app-domain.com",
-    "iconUrl": "https://your-app-domain.com/icon-192.png"
+    "url": "http://localhost:5000",
+    "iconUrl": "http://localhost:5000/icon-192.png"
   }
 }

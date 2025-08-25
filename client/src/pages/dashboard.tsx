@@ -29,7 +29,11 @@ export default function Dashboard() {
   const [activeSection, setActiveSection] = useState<'dashboard' | 'tonWallet' | 'browseTask' | 'transactionWithdrawal' | 'profileSettings'>('dashboard');
   const [nickname, setNickname] = useState(telegramUser?.firstName || '');
   const [isEditingNickname, setIsEditingNickname] = useState(false);
-  const [useTelegramPhoto, setUseTelegramPhoto] = useState(true);
+  const [useTelegramPhoto, setUseTelegramPhoto] = useState(() => {
+    // Try to get the saved preference from localStorage
+    const saved = localStorage.getItem('useTelegramPhoto');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
   const [showAccountSettings, setShowAccountSettings] = useState(false);
   const [isEditingWallet, setIsEditingWallet] = useState(false);
   const [walletAddress, setWalletAddress] = useState('');
@@ -101,8 +105,15 @@ export default function Dashboard() {
     console.log("Profile photo toggle clicked!");
     console.log("Current useTelegramPhoto:", useTelegramPhoto);
     console.log("Telegram photo URL:", telegramUser?.photoUrl);
-    setUseTelegramPhoto(!useTelegramPhoto);
-    console.log("Setting useTelegramPhoto to:", !useTelegramPhoto);
+    
+    const newValue = !useTelegramPhoto;
+    setUseTelegramPhoto(newValue);
+    
+    // Save the preference to localStorage
+    localStorage.setItem('useTelegramPhoto', JSON.stringify(newValue));
+    
+    console.log("Setting useTelegramPhoto to:", newValue);
+    console.log("Saved preference to localStorage");
   };
 
   const handleWalletAddressUpdate = () => {
@@ -192,17 +203,20 @@ export default function Dashboard() {
   // Debug logging - Remove after testing
   useEffect(() => {
     console.log("=== DEBUG INFO ===");
+    console.log("useTelegramPhoto state:", useTelegramPhoto);
+    console.log("telegramUser:", telegramUser);
+    console.log("telegramUser.photoUrl:", telegramUser?.photoUrl);
     console.log("Telegram User:", telegramUser);
     console.log("Photo URL:", telegramUser?.photoUrl);
     console.log("First Name:", telegramUser?.firstName);
     console.log("User ID:", userId);
-      console.log("User data:", user);
+    console.log("User data:", user);
     console.log("User telegramId:", user?.telegramId);
     console.log("User isAdmin:", user?.isAdmin);
     console.log("Hardcoded admin check:", user?.telegramId === "5154336054");
     console.log("Combined admin check:", user?.isAdmin || user?.telegramId === "5154336054");
     console.log("==================");
-  }, [user, telegramUser, userId]);
+  }, [useTelegramPhoto, telegramUser, user, userId]);
 
   // Fetch campaigns
   const { data: campaigns = [] } = useQuery<Campaign[]>({
@@ -263,26 +277,44 @@ export default function Dashboard() {
                                {/* User Avatar Circle */}
                  {(() => {
                    console.log("Rendering avatar - useTelegramPhoto:", useTelegramPhoto, "photoUrl:", telegramUser?.photoUrl);
-                   return useTelegramPhoto && telegramUser?.photoUrl ? (
-                     <img 
-                       src={telegramUser.photoUrl} 
-                       alt="Profile" 
-                       className="w-16 h-16 rounded-full border-2 border-blue-100"
-                       onError={(e) => {
-                         console.log("Avatar image failed to load:", telegramUser.photoUrl);
-                         e.currentTarget.style.display = 'none';
-                       }}
-                     />
-                   ) : (
+                   // Show Telegram photo if toggle is ON and photo URL exists
+                   if (useTelegramPhoto && telegramUser?.photoUrl) {
+                     return (
+                       <div className="relative group cursor-pointer">
+                         <img 
+                           src={telegramUser.photoUrl} 
+                           alt="Profile" 
+                           className="w-16 h-16 rounded-full border-2 border-blue-100"
+                           onError={(e) => {
+                             console.log("Avatar image failed to load:", telegramUser.photoUrl);
+                             e.currentTarget.style.display = 'none';
+                           }}
+                         />
+                         {/* Toggle Button Overlay */}
+                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-full transition-all duration-200 flex items-center justify-center">
+                           <button
+                             onClick={handleProfilePhotoToggle}
+                             className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white bg-opacity-80 rounded-full p-2"
+                             title="Switch to in-app photo"
+                           >
+                             <Settings className="w-5 w-5 text-gray-600" />
+                           </button>
+                         </div>
+                       </div>
+                     );
+                   }
+                   
+                   // Show in-app photo if toggle is OFF or no Telegram photo
+                   return (
                      <div className="w-16 h-16 rounded-full border-2 border-blue-100 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center relative group cursor-pointer">
                        <User className="w-8 h-8 text-white" />
                                           {/* Toggle Button Overlay */}
                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-full transition-all duration-200 flex items-center justify-center">
-                          <button
-                            onClick={handleProfilePhotoToggle}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white bg-opacity-80 rounded-full p-2"
-                            title="Toggle profile photo"
-                          >
+                                                     <button
+                             onClick={handleProfilePhotoToggle}
+                             className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white bg-opacity-80 rounded-full p-2"
+                             title="Switch to Telegram photo"
+                           >
                             <Settings className="w-5 h-5 text-gray-600" />
                           </button>
                 </div>
@@ -305,22 +337,14 @@ export default function Dashboard() {
             </div>
           </div>
             
-                       {/* Profile Picture */}
-             <div className="flex items-center space-x-3">
-               {useTelegramPhoto && telegramUser?.photoUrl && (
-                 <img 
-                   src={telegramUser.photoUrl} 
-                   alt="Profile" 
-                   className="w-20 h-20 rounded-full border-2 border-blue-100"
-                 />
-               )}
-               {/* Admin Badge */}
-               {(user?.isAdmin || user?.telegramId === "5154336054" || telegramUser?.id === 5154336054) && (
-                 <Badge variant="premium" className="text-xs">
-                   ADMIN
-                 </Badge>
-               )}
-             </div>
+                                               {/* Admin Badge */}
+              <div className="flex items-center space-x-3">
+                {(user?.isAdmin || user?.telegramId === "5154336054" || telegramUser?.id === 5154336054) && (
+                  <Badge variant="premium" className="text-xs">
+                    ADMIN
+                  </Badge>
+                )}
+              </div>
           </div>
           
           {/* Task Counts */}
@@ -348,12 +372,12 @@ export default function Dashboard() {
                   </div>
         )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 mini-app-content">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-32 mini-app-content">
         {/* Main Content */}
         <div className="space-y-6">
-          {/* Dashboard Section */}
-          {activeSection === 'dashboard' && (
-            <div className="space-y-6">
+                     {/* Dashboard Section */}
+           {activeSection === 'dashboard' && (
+             <div className="space-y-6 mt-8">
             <Card>
                 <CardHeader>
                   <CardTitle>Quick Overview</CardTitle>
@@ -394,202 +418,129 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* TON Wallet Section */}
-          {activeSection === 'tonWallet' && (
-            <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                  <CardTitle>TON Wallet</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="bg-gradient-to-r from-orange-400 to-red-500 p-6 rounded-lg text-white text-center">
-                    <h3 className="text-xl font-bold mb-2">TON Wallet Integration</h3>
-                    <p className="text-orange-100">Connect your TON wallet to manage your crypto assets</p>
+                                                                 {/* TON Wallet Section */}
+                                                                                                               {activeSection === 'tonWallet' && (
+                  <div className="space-y-6 px-4 mt-8">
+                    <div className="bg-gradient-to-r from-orange-400 to-red-500 p-6 rounded-lg text-white text-center">
+                      <h3 className="text-xl font-bold mb-2">TON Wallet Integration</h3>
+                      <p className="text-orange-100">Connect your TON wallet to manage your crypto assets</p>
+                    </div>
+                    
+                    {/* Embedded Wallet Component */}
+                    <EnhancedWalletIntegration />
                   </div>
-                  
-                  {/* @wallet Bot Integration */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-center space-x-3 mb-3">
-                      <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <Wallet className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-blue-900">@wallet Bot</h4>
-                        <p className="text-sm text-blue-600">Official Telegram TON Wallet</p>
-                      </div>
-                    </div>
-                    <p className="text-sm text-blue-700 mb-3">
-                      Create and manage your TON wallet directly within this mini-app
-                    </p>
-                    <div className="flex space-x-2">
-                      <Button 
-                        size="sm"
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
-                        onClick={() => {
-                          if (isTelegramApp) {
-                            // Open @wallet mini-app directly
-                            window.Telegram.WebApp.showPopup({
-                              title: 'TON Wallet',
-                              message: 'Opening @wallet mini-app...',
-                              buttons: [
-                                {
-                                  type: 'default',
-                                  text: 'Open Wallet',
-                                  id: 'open_wallet'
-                                }
-                              ]
-                            });
-                            
-                            // Handle button click
-                            window.Telegram.WebApp.onEvent('popupClosed', (buttonId) => {
-                              if (buttonId === 'open_wallet') {
-                                // Open the @wallet mini-app
-                                window.Telegram.WebApp.openTelegramLink('https://t.me/wallet?start=taskquer');
-                              }
-                            });
-                          } else {
-                            // Fallback for non-Telegram environments
-                            window.open('https://t.me/wallet?start=taskquer', '_blank');
-                          }
-                        }}
-                      >
-                        Open Wallet Mini-App
-                      </Button>
-                      <Button 
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          if (isTelegramApp) {
-                            // Try to open @wallet mini-app directly
-                            try {
-                              // This attempts to open the @wallet mini-app
-                              window.Telegram.WebApp.openTelegramLink('https://t.me/wallet?start=taskquer');
-                            } catch (error) {
-                              console.log('Direct mini-app opening not supported, using fallback');
-                              // Fallback to bot chat
-                              window.Telegram.WebApp.openTelegramLink('https://t.me/wallet?start=taskquer');
-                            }
-                          } else {
-                            window.open('https://t.me/wallet?start=taskquer', '_blank');
-                          }
-                        }}
-                      >
-                        Quick Access
-                      </Button>
-                    </div>
+                )}
+
+                                                                                       {/* Browse Tasks Section */}
+                           {activeSection === 'browseTask' && (
+                <div className="space-y-6 px-4 mt-8">
+                                  {/* Campaign Tasks Header */}
+                   <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-lg p-6 text-center text-white shadow-lg">
+                    <h3 className="text-xl font-bold mb-2">CAMPAIGN TASKS</h3>
+                    <p className="text-blue-100">Discover and complete tasks to earn rewards</p>
                   </div>
-                  
-                  {/* Embedded Wallet Component */}
-                  <EnhancedWalletIntegration />
-                  
-              </CardContent>
-            </Card>
-          </div>
-          )}
+                
+                {/* Platform Filter */}
+                <div className="flex items-center space-x-2 mb-4">
+                  <Filter className="w-4 h-4 text-slate-600" />
+                  <span className="text-sm font-medium text-slate-700">Filter by Platform:</span>
+                </div>
+             <div className="flex flex-wrap gap-2 mb-6">
+               <Button 
+                 variant={platformFilter === "all" ? "default" : "outline"}
+                 size="sm"
+                 onClick={() => setPlatformFilter("all")}
+               >
+                 All Platforms
+               </Button>
+               {["twitter", "tiktok", "facebook", "telegram"].map((platform) => (
+                 <Button
+                   key={platform}
+                   variant={platformFilter === platform ? "default" : "outline"}
+                   size="sm"
+                   onClick={() => setPlatformFilter(platform)}
+                   className="capitalize"
+                 >
+                   <i className={`${platformIcons[platform as keyof typeof platformIcons]} mr-2`} />
+                   {platform}
+                 </Button>
+               ))}
+             </div>
 
-          {/* Browse Tasks Section */}
-          {activeSection === 'browseTask' && (
-            <div className="space-y-6">
-            {/* Platform Filter */}
-            <div className="flex items-center space-x-2 mb-4">
-              <Filter className="w-4 h-4 text-slate-600" />
-              <span className="text-sm font-medium text-slate-700">Filter by Platform:</span>
-            </div>
-            <div className="flex flex-wrap gap-2 mb-6">
-              <Button 
-                variant={platformFilter === "all" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setPlatformFilter("all")}
-              >
-                All Platforms
-              </Button>
-              {["twitter", "tiktok", "facebook", "telegram"].map((platform) => (
-                <Button
-                  key={platform}
-                  variant={platformFilter === platform ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setPlatformFilter(platform)}
-                  className="capitalize"
-                >
-                  <i className={`${platformIcons[platform as keyof typeof platformIcons]} mr-2`} />
-                  {platform}
-                </Button>
-              ))}
-            </div>
+             {/* Task Cards */}
+             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+               {filteredCampaigns.map((campaign) => (
+                 <TaskCard
+                   key={campaign.id}
+                   campaign={campaign}
+                   onStartTask={() => setSelectedTask(campaign)}
+                 />
+               ))}
+             </div>
+             </div>
+           )}
 
-            {/* Task Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredCampaigns.map((campaign) => (
-                <TaskCard
-                  key={campaign.id}
-                  campaign={campaign}
-                  onStartTask={() => setSelectedTask(campaign)}
-                />
-              ))}
-            </div>
-            </div>
-          )}
-
-          {/* Transactions & Withdrawal Section */}
-          {activeSection === 'transactionWithdrawal' && (
-            <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Transaction History</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {transactions.map((transaction) => (
-                  <div key={transaction.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                    <div className="flex items-center space-x-4">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        transaction.type === "reward" ? "bg-success-green bg-opacity-10" :
-                        transaction.type === "withdrawal" ? "bg-error-red bg-opacity-10" : 
-                        "bg-telegram-blue bg-opacity-10"
-                      }`}>
-                        {transaction.type === "reward" && <Plus className="w-5 h-5 text-success-green" />}
-                        {transaction.type === "withdrawal" && <Wallet className="w-5 h-5 text-error-red" />}
-                        {transaction.type === "deposit" && <Plus className="w-5 h-5 text-telegram-blue" />}
-                      </div>
-                      <div>
-                          <p className="text-sm font-medium text-slate-900 capitalize">
-                          {transaction.type === "reward" ? "Task Reward" : 
-                           transaction.type === "withdrawal" ? "Withdrawal" : "Deposit"}
-                        </p>
-                          <p className="text-sm text-gray-600">
-                          {formatDate(transaction.createdAt.toString())}
-                        </p>
-                      </div>
+                                           {/* Transactions & Withdrawal Section */}
+                                                                                                                                                                                                                                                                                                                       {activeSection === 'transactionWithdrawal' && (
+                  <div className="space-y-6 px-4 mt-8">
+                    {/* Withdraw Earnings Header */}
+                    <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 rounded-lg p-6 text-center text-white shadow-lg">
+                      <h3 className="text-xl font-bold mb-2">Withdraw Earnings</h3>
+                      <p className="text-green-100">Withdraw your USDT rewards to your wallet</p>
                     </div>
-                    <div className="text-right">
-                      <p className={`font-semibold ${
-                        transaction.type === "withdrawal" ? "text-error-red" : "text-success-green"
-                      }`}>
-                        {transaction.type === "withdrawal" ? "-" : "+"}
-                        {transaction.amount} USDT
-                      </p>
-                      <Badge variant="outline" className="text-xs">
-                        {transaction.status}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Withdraw Funds</CardTitle>
-                </CardHeader>
-                <CardContent>
-            <WithdrawalForm userId={userId} userBalance={user?.balance || "0"} />
-                </CardContent>
-              </Card>
-            </div>
-          )}
+                  
+                  {/* Withdrawal Form */}
+                  <WithdrawalForm userId={userId} userBalance={user?.balance || "0"} />
 
-          {/* Profile & Settings Section */}
-          {activeSection === 'profileSettings' && (
-            <div className="space-y-6">
+                  {/* Transaction History */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Transaction History</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {transactions.map((transaction) => (
+                        <div key={transaction.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                          <div className="flex items-center space-x-4">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                              transaction.type === "reward" ? "bg-success-green bg-opacity-10" :
+                              transaction.type === "withdrawal" ? "bg-error-red bg-opacity-10" : 
+                              "bg-telegram-blue bg-opacity-10"
+                            }`}>
+                              {transaction.type === "reward" && <Plus className="w-5 h-5 text-success-green" />}
+                              {transaction.type === "withdrawal" && <Wallet className="w-5 h-5 text-error-red" />}
+                              {transaction.type === "deposit" && <Plus className="w-5 h-5 text-telegram-blue" />}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-slate-900 capitalize">
+                                {transaction.type === "reward" ? "Task Reward" : 
+                                 transaction.type === "withdrawal" ? "Withdrawal" : "Deposit"}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                {formatDate(transaction.createdAt.toString())}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className={`font-semibold ${
+                              transaction.type === "withdrawal" ? "text-error-red" : "text-success-green"
+                            }`}>
+                              {transaction.type === "withdrawal" ? "-" : "+"}
+                              {transaction.amount} USDT
+                            </p>
+                            <Badge variant="outline" className="text-xs">
+                              {transaction.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+                     {/* Profile & Settings Section */}
+           {activeSection === 'profileSettings' && (
+             <div className="space-y-6 mt-8">
               <Card>
                 <CardHeader>
                   <CardTitle>User Profile</CardTitle>
