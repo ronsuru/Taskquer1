@@ -10,7 +10,7 @@ import CampaignForm from "@/components/CampaignForm";
 import WithdrawalForm from "@/components/WithdrawalForm";
 import TaskSubmissionModal from "@/components/TaskSubmissionModal";
 import AdminBalanceModal from "@/components/AdminBalanceModal";
-import { User, Wallet, Trophy, CheckCircle, Search, Plus, Filter, Settings, LogOut, User as UserIcon, Cog, Download } from "lucide-react";
+import { User, Wallet, Trophy, CheckCircle, Search, Plus, Filter, Settings, LogOut, User as UserIcon, Cog, Download, Bell } from "lucide-react";
 import type { Campaign, User as UserType, Transaction } from "@shared/schema";
 import { useTelegram } from "@/contexts/TelegramContext";
 import { TelegramAppLauncher } from "@/components/TelegramAppLauncher";
@@ -23,7 +23,7 @@ export default function Dashboard() {
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [activeSection, setActiveSection] = useState<'tasks' | 'campaigns' | 'transactions' | 'withdraw' | 'profile'>('tasks');
+  const [activeSection, setActiveSection] = useState<'dashboard' | 'tonWallet' | 'browseTask' | 'transactionWithdrawal' | 'profileSettings'>('dashboard');
   
   // Use Telegram user ID if available, otherwise fallback to hardcoded ID
   const userId = telegramUser?.id?.toString() || "5154336054";
@@ -115,218 +115,139 @@ export default function Dashboard() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-telegram-blue rounded-lg flex items-center justify-center">
-                <CheckCircle className="w-4 h-4 text-white" />
-              </div>
-              <h1 className="text-xl font-bold text-slate-900">TaskBot</h1>
+    return (
+    <div className="min-h-screen bg-slate-50 mini-app-container telegram-mini-app">
+      {/* Header Section */}
+      <div className="bg-white px-4 py-6 border-b border-slate-200">
+        <div className="flex justify-between items-start">
+          {/* Greetings */}
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold text-slate-900">
+              Hi {telegramUser?.firstName || 'User'} 👋
+            </h1>
+            <p className="text-slate-600 mt-1">Welcome back to Taskquer</p>
+          </div>
+          
+          {/* Profile Picture */}
+          <div className="flex items-center space-x-3">
+            {telegramUser?.photoUrl && (
+              <img 
+                src={telegramUser.photoUrl} 
+                alt="Profile" 
+                className="w-12 h-12 rounded-full border-2 border-blue-100"
+              />
+            )}
+            {/* Admin Badge */}
+            {(user?.isAdmin || user?.telegramId === "5154336054" || telegramUser?.id === 5154336054) && (
+              <Badge variant="premium" className="text-xs">
+                ADMIN
+              </Badge>
+            )}
+          </div>
+        </div>
+        
+        {/* Task Counts */}
+        <div className="flex space-x-6 mt-6">
+          {/* Total Finished Tasks */}
+          <div className="text-center">
+            <div className="text-3xl font-bold text-blue-600">
+              {user?.completedTasks || 0}
             </div>
-            <div className="flex items-center space-x-4">
-                             {/* Admin Buttons - Multiple detection methods */}
-               {(user?.isAdmin || user?.telegramId === "5154336054" || telegramUser?.id === 5154336054) && (
-                 <>
-                   <Button variant="default" size="sm" className="bg-red-600 hover:bg-red-700" onClick={() => setShowAdminPanel(true)}>
-                     <Settings className="w-4 h-4 mr-2" />
-                     BALANCE ADMIN
-                   </Button>
-                   <Button 
-                     variant="default" 
-                     size="sm" 
-                     className="bg-purple-600 hover:bg-purple-700"
-                     onClick={() => window.location.href = '/admin'}
-                   >
-                     <Settings className="w-4 h-4 mr-2" />
-                     ADMIN DASHBOARD
-                   </Button>
-                 </>
-               )}
-               
-               {/* Debug Admin Button - Always show for testing */}
-               {process.env.NODE_ENV === 'development' && (
-                 <Button 
-                   variant="outline" 
-                   size="sm" 
-                   className="border-orange-500 text-orange-600"
-                   onClick={() => {
-                     console.log("Debug Admin Button Clicked");
-                     console.log("Current state:", { user, telegramUser, userId });
-                   }}
-                 >
-                   🐛 DEBUG ADMIN
-                 </Button>
-               )}
-               
-               {/* Fallback Admin Button - Show when user data is loading */}
-               {!user && telegramUser?.id === 5154336054 && (
-                 <Button 
-                   variant="outline" 
-                   size="sm" 
-                   className="border-yellow-500 text-yellow-600"
-                   onClick={() => window.location.href = '/admin'}
-                 >
-                   ⚠️ FALLBACK ADMIN
-                 </Button>
-               )}
-              <div className="hidden sm:flex items-center space-x-2 bg-slate-100 rounded-lg px-3 py-2">
-                <Wallet className="w-4 h-4 text-telegram-blue" />
-                <span className="text-sm font-medium text-slate-700">
-                  {user?.balance || "0.00"} USDT
-                </span>
-              </div>
-              <div className="flex items-center space-x-2">
-                {telegramUser?.photoUrl && (
-                  <img 
-                    src={telegramUser.photoUrl} 
-                    alt="Profile" 
-                    className="w-8 h-8 rounded-full"
-                  />
-                )}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="flex items-center space-x-2">
-                      <User className="w-5 h-5 text-slate-600" />
-                      <span>{telegramUser?.firstName || 'User'}</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                                         <DropdownMenuLabel className="font-normal">
-                       <div className="flex flex-col space-y-1">
-                         <div className="flex items-center space-x-2">
-                           <p className="text-sm font-medium leading-none">
-                             {telegramUser?.firstName} {telegramUser?.lastName}
-                           </p>
-                                                       {(user?.isAdmin || user?.telegramId === "5154336054" || telegramUser?.id === 5154336054) && (
-                              <Badge variant="premium" className="text-xs">
-                                ADMIN
-                              </Badge>
-                            )}
-                         </div>
-                         <p className="text-xs leading-none text-muted-foreground">
-                           @{telegramUser?.username || 'user'}
-                         </p>
-                         <p className="text-xs leading-none text-muted-foreground">
-                           ID: {telegramUser?.id}
-                         </p>
-                       </div>
-                     </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleProfileClick}>
-                      <UserIcon className="mr-2 h-4 w-4" />
-                      <span>Profile</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleSettingsClick}>
-                      <Cog className="mr-2 h-4 w-4" />
-                      <span>Settings</span>
-                    </DropdownMenuItem>
-                                         {(user?.isAdmin || user?.telegramId === "5154336054" || telegramUser?.id === 5154336054) && (
-                       <>
-                         <DropdownMenuSeparator />
-                         <DropdownMenuItem onClick={() => window.location.href = '/admin'}>
-                           <Settings className="mr-2 h-4 w-4" />
-                           <span>Admin Dashboard</span>
-                         </DropdownMenuItem>
-                       </>
-                     )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogoutClick}>
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Log out</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+            <div className="text-sm text-slate-600 mt-1">
+              Total Task Completed
+            </div>
+          </div>
+          
+          {/* Ongoing Tasks */}
+          <div className="text-center">
+            <div className="text-3xl font-bold text-orange-600">
+              {user?.ongoingTasks || 0}
+            </div>
+            <div className="text-sm text-slate-600 mt-1">
+              Ongoing Task
             </div>
           </div>
         </div>
-      </nav>
+      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24">
-        {/* Welcome Section */}
-        <section className="mb-8">
-          <div className="bg-gradient-to-r from-telegram-blue to-blue-600 rounded-2xl p-6 text-white relative overflow-hidden">
-            <div className="relative z-10">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-2">Welcome to TaskBot</h2>
-              <p className="text-blue-100 mb-4 max-w-2xl">
-                Complete social media tasks and earn USDT rewards. Create campaigns to promote your content with our escrow system.
-              </p>
-            </div>
-            <div className="absolute right-0 top-0 w-32 h-32 bg-blue-400 opacity-20 rounded-full -translate-y-8 translate-x-8"></div>
-            <div className="absolute right-8 bottom-0 w-20 h-20 bg-blue-300 opacity-20 rounded-full translate-y-4"></div>
-          </div>
-        </section>
-
-        {/* Stats Grid */}
-        <section className="mb-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-600">User ID</p>
-                    <p className="text-xl font-bold text-slate-900">#{userId}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-telegram-blue bg-opacity-10 rounded-lg flex items-center justify-center">
-                    <User className="w-5 h-5 text-telegram-blue" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-600">Balance</p>
-                    <p className="text-xl font-bold text-slate-900">{user?.balance || "0.00"} USDT</p>
-                  </div>
-                  <div className="w-10 h-10 bg-success-green bg-opacity-10 rounded-lg flex items-center justify-center">
-                    <Wallet className="w-5 h-5 text-success-green" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-600">Total Rewards</p>
-                    <p className="text-xl font-bold text-slate-900">{user?.rewards || "0.00"} USDT</p>
-                  </div>
-                  <div className="w-10 h-10 bg-warning-amber bg-opacity-10 rounded-lg flex items-center justify-center">
-                    <Trophy className="w-5 h-5 text-warning-amber" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-600">Tasks Completed</p>
-                    <p className="text-xl font-bold text-slate-900">{user?.completedTasks || 0}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-blue-500 bg-opacity-10 rounded-lg flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-blue-500" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 mini-app-content">
 
         {/* Main Content */}
         <div className="space-y-6">
 
-                    {/* Browse Tasks Section */}
-          {activeSection === 'tasks' && (
+          {/* Dashboard Section */}
+          {activeSection === 'dashboard' && (
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Quick Overview</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <Wallet className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-blue-600">Balance</p>
+                          <p className="text-xl font-bold text-blue-900">{user?.balance || "0.00"} USDT</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                          <Trophy className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-green-600">Total Rewards</p>
+                          <p className="text-xl font-bold text-green-900">{user?.rewards || "0.00"} USDT</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4 rounded-lg text-white">
+                    <h3 className="font-semibold mb-2">Ready to earn?</h3>
+                    <p className="text-blue-100 text-sm">Browse available tasks and start earning USDT rewards!</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* TON Wallet Section */}
+          {activeSection === 'tonWallet' && (
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>TON Wallet</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="bg-gradient-to-r from-orange-400 to-red-500 p-6 rounded-lg text-white text-center">
+                    <h3 className="text-xl font-bold mb-2">TON Wallet Integration</h3>
+                    <p className="text-orange-100">Connect your TON wallet to manage your crypto assets</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Button className="w-full" variant="outline">
+                      <Wallet className="w-4 h-4 mr-2" />
+                      Connect Wallet
+                    </Button>
+                    <Button className="w-full" variant="outline">
+                      <Download className="w-4 h-4 mr-2" />
+                      Send/Receive
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Browse Tasks Section */}
+          {activeSection === 'browseTask' && (
             <div className="space-y-6">
               {/* Platform Filter */}
               <div className="flex items-center space-x-2 mb-4">
@@ -368,15 +289,8 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Campaigns Section */}
-          {activeSection === 'campaigns' && (
-            <div className="space-y-6">
-              <CampaignForm userId={userId} />
-            </div>
-          )}
-
-          {/* Transactions Section */}
-          {activeSection === 'transactions' && (
+          {/* Transactions & Withdrawal Section */}
+          {activeSection === 'transactionWithdrawal' && (
             <div className="space-y-6">
               <Card>
                 <CardHeader>
@@ -396,7 +310,7 @@ export default function Dashboard() {
                           {transaction.type === "deposit" && <Plus className="w-5 h-5 text-telegram-blue" />}
                         </div>
                         <div>
-                          <p className="font-medium text-slate-900 capitalize">
+                          <p className="text-sm font-medium text-slate-900 capitalize">
                             {transaction.type === "reward" ? "Task Reward" : 
                              transaction.type === "withdrawal" ? "Withdrawal" : "Deposit"}
                           </p>
@@ -420,18 +334,20 @@ export default function Dashboard() {
                   ))}
                 </CardContent>
               </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Withdraw Funds</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <WithdrawalForm userId={userId} userBalance={user?.balance || "0"} />
+                </CardContent>
+              </Card>
             </div>
           )}
 
-          {/* Withdraw Section */}
-          {activeSection === 'withdraw' && (
-            <div className="space-y-6">
-              <WithdrawalForm userId={userId} userBalance={user?.balance || "0"} />
-            </div>
-          )}
-
-          {/* Profile Section */}
-          {activeSection === 'profile' && (
+          {/* Profile & Settings Section */}
+          {activeSection === 'profileSettings' && (
             <div className="space-y-6">
               <Card>
                 <CardHeader>
@@ -461,7 +377,7 @@ export default function Dashboard() {
                       )}
                     </div>
                   </div>
-                  
+                   
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3">
                       <User className="w-4 h-4 text-muted-foreground" />
@@ -479,70 +395,90 @@ export default function Dashboard() {
                   </div>
                 </CardContent>
               </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Settings</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Button variant="outline" className="w-full justify-start">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Account Settings
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start">
+                    <User className="w-4 h-4 mr-2" />
+                    Privacy Settings
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start">
+                    <Bell className="w-4 h-4 mr-2" />
+                    Notification Preferences
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           )}
         </div>
 
         {/* Bottom Navigation Bar */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 z-50">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 z-50 mini-app-bottom-nav">
           <div className="flex justify-around items-center max-w-md mx-auto">
-            {/* Tasks */}
+            {/* Dashboard */}
             <button
-              onClick={() => setActiveSection('tasks')}
+              onClick={() => setActiveSection('dashboard')}
               className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-colors ${
-                activeSection === 'tasks' 
+                activeSection === 'dashboard' 
                   ? 'text-blue-600 bg-blue-50' 
                   : 'text-gray-600 hover:text-blue-600'
               }`}
             >
               <CheckCircle className="w-6 h-6" />
-              <span className="text-xs font-medium">Tasks</span>
+              <span className="text-xs font-medium">Dashboard</span>
             </button>
 
-            {/* Campaigns */}
+            {/* TON Wallet */}
             <button
-              onClick={() => setActiveSection('campaigns')}
+              onClick={() => setActiveSection('tonWallet')}
               className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-colors ${
-                activeSection === 'campaigns' 
-                  ? 'text-blue-600 bg-blue-50' 
-                  : 'text-gray-600 hover:text-blue-600'
-              }`}
-            >
-              <Trophy className="w-6 h-6" />
-              <span className="text-xs font-medium">Campaigns</span>
-            </button>
-
-            {/* Transactions */}
-            <button
-              onClick={() => setActiveSection('transactions')}
-              className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-colors ${
-                activeSection === 'transactions' 
+                activeSection === 'tonWallet' 
                   ? 'text-blue-600 bg-blue-50' 
                   : 'text-gray-600 hover:text-blue-600'
               }`}
             >
               <Wallet className="w-6 h-6" />
-              <span className="text-xs font-medium">Transactions</span>
+              <span className="text-xs font-medium">TON Wallet</span>
             </button>
 
-            {/* Withdraw */}
+            {/* Browse Task */}
             <button
-              onClick={() => setActiveSection('withdraw')}
+              onClick={() => setActiveSection('browseTask')}
               className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-colors ${
-                activeSection === 'withdraw' 
+                activeSection === 'browseTask' 
+                  ? 'text-blue-600 bg-blue-50' 
+                  : 'text-gray-600 hover:text-blue-600'
+              }`}
+            >
+              <Trophy className="w-6 h-6" />
+              <span className="text-xs font-medium">Browse Task</span>
+            </button>
+
+            {/* Transaction & Withdrawal */}
+            <button
+              onClick={() => setActiveSection('transactionWithdrawal')}
+              className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-colors ${
+                activeSection === 'transactionWithdrawal' 
                   ? 'text-blue-600 bg-blue-50' 
                   : 'text-gray-600 hover:text-blue-600'
               }`}
             >
               <Download className="w-6 h-6" />
-              <span className="text-xs font-medium">Withdraw</span>
+              <span className="text-xs font-medium">Transactions</span>
             </button>
 
-            {/* Profile */}
+            {/* Profile Settings */}
             <button
-              onClick={() => setActiveSection('profile')}
+              onClick={() => setActiveSection('profileSettings')}
               className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-colors ${
-                activeSection === 'profile' 
+                activeSection === 'profileSettings' 
                   ? 'text-blue-600 bg-blue-50' 
                   : 'text-gray-600 hover:text-blue-600'
               }`}
@@ -553,21 +489,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Support Section */}
-        <section className="mt-8">
-          <div className="bg-gradient-to-r from-slate-100 to-slate-200 rounded-2xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">Need Help?</h3>
-                <p className="text-slate-600 text-sm">Contact our support team for assistance with tasks, payments, or campaigns.</p>
-              </div>
-              <Button className="bg-telegram-blue hover:bg-blue-600">
-                <i className="fab fa-telegram mr-2" />
-                Contact Support
-              </Button>
-            </div>
-          </div>
-        </section>
+
       </div>
 
       {/* Task Submission Modal */}

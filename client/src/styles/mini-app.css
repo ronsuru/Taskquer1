@@ -1,0 +1,162 @@
+/* Telegram Mini App - Vertical Resolution Optimization */
+/* Target: 1080x1980 (Portrait Mode) */
+
+/* Root container for optimal mini-app dimensions */
+#root {
+  width: 100vw;
+  min-height: 100vh;
+  max-width: 100vw;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Force optimal dimensions for 1080x1980 resolution */
+@media screen and (min-width: 1080px) {
+  #root {
+    max-width: 1080px;
+    margin: 0 auto;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Ensure the app takes full viewport height */
+.mini-app-container {
+  width: 100%;
+  min-height: 100vh;
+  max-width: 100vw;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Optimize for mobile viewport */
+@media screen and (max-width: 1080px) {
+  .mini-app-container {
+    width: 100vw;
+    min-height: 100vh;
+  }
+}
+
+/* Force portrait orientation for optimal mini-app experience */
+@media screen and (orientation: landscape) {
+  .mini-app-container {
+    transform: rotate(90deg);
+    transform-origin: center center;
+    width: 100vh;
+    height: 100vw;
+  }
+}
+
+/* Telegram Web App specific optimizations */
+.telegram-mini-app {
+  width: 100%;
+  min-height: 100vh;
+  background: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ensure content fits within mini-app bounds */
+.mini-app-content {
+  width: 100%;
+  max-width: 100vw;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+/* Bottom navigation optimization for mini-app */
+.mini-app-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  background: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  z-index: 1000;
+  padding: 8px 16px;
+  box-sizing: border-box;
+}
+
+/* Responsive adjustments for different screen sizes */
+@media screen and (max-width: 480px) {
+  .mini-app-container {
+    font-size: 14px;
+  }
+  
+  .mini-app-bottom-nav {
+    padding: 6px 12px;
+  }
+}
+
+/* Optimize for 1080x1980 resolution */
+@media screen and (min-width: 1080px) {
+  .mini-app-container {
+    font-size: 18px;
+    line-height: 1.6;
+  }
+  
+  .mini-app-content {
+    padding: 0 24px;
+  }
+  
+  .mini-app-bottom-nav {
+    padding: 12px 24px;
+  }
+  
+  /* Optimize navigation for larger screens */
+  .mini-app-bottom-nav button {
+    padding: 12px 16px;
+    font-size: 16px;
+  }
+}
+
+@media screen and (min-width: 481px) and (max-width: 768px) {
+  .mini-app-container {
+    font-size: 16px;
+  }
+}
+
+@media screen and (min-width: 769px) and (max-width: 1080px) {
+  .mini-app-container {
+    font-size: 18px;
+  }
+}
+
+/* Telegram Mini App specific viewport handling */
+@supports (padding: max(0px)) {
+  .mini-app-container {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  
+  .mini-app-bottom-nav {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Prevent horizontal scrolling */
+body, html {
+  overflow-x: hidden;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Optimize touch targets for mobile */
+button, .nav-item {
+  min-height: 44px;
+  min-width: 44px;
+  touch-action: manipulation;
+}
+
+/* Smooth scrolling for mini-app */
+.mini-app-container {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
