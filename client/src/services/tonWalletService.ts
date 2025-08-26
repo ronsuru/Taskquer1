@@ -52,91 +52,52 @@ export class TONWalletService {
         return true;
       }
 
-      // Try to detect available wallets, but don't fail if this method doesn't exist
+      // Set up status change listener before connecting
+      this.connector.onStatusChange((wallet) => {
+        console.log('Wallet status changed:', wallet);
+        if (wallet) {
+          this.walletData = {
+            balance: '0',
+            address: wallet.account.address,
+            currency: 'TON',
+            isConnected: true
+          };
+          console.log('Wallet connected successfully:', this.walletData);
+          
+          // Immediately fetch balance after connection
+          this.getBalance();
+        } else {
+          console.log('Wallet disconnected');
+          this.walletData = null;
+        }
+      });
+
+      // Check if we're in Telegram mini-app environment
+      const isTelegramApp = window.Telegram?.WebApp;
+      console.log('Telegram mini-app detected:', !!isTelegramApp);
+
+      // Try to detect available wallets first
       let availableWallets = [];
       try {
         if (typeof this.connector.getWallets === 'function') {
           availableWallets = await this.connector.getWallets();
-          console.log('Available wallets:', availableWallets);
+          console.log('Available wallets detected:', availableWallets);
         } else {
           console.log('getWallets method not available, proceeding with connection attempt');
         }
       } catch (walletDetectionError) {
         console.log('Wallet detection failed, proceeding with connection attempt:', walletDetectionError);
       }
-      
-      // If no wallets detected or detection failed, try direct connection
-      if (availableWallets.length === 0) {
-        console.log('No wallets detected or detection failed, attempting direct connection...');
-        
-        try {
-          // Set up status change listener before connecting
-          this.connector.onStatusChange((wallet) => {
-            console.log('Wallet status changed:', wallet);
-            if (wallet) {
-              this.walletData = {
-                balance: '0',
-                address: wallet.account.address,
-                currency: 'TON',
-                isConnected: true
-              };
-              console.log('Wallet connected successfully:', this.walletData);
-              
-              // Immediately fetch balance after connection
-              this.getBalance();
-            } else {
-              console.log('Wallet disconnected');
-              this.walletData = null;
-            }
-          });
 
-          // Attempt direct connection
-          await this.connector.connect();
-          console.log('Connection request sent successfully');
-          
-          // Wait a bit for the connection to be established
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          
-          // Check if connection was successful
-          const wallet = await this.connector.wallet;
-          if (wallet) {
-            console.log('Wallet connection confirmed:', wallet);
-            return true;
-          }
-        } catch (directConnectionError) {
-          console.log('Direct connection failed:', directConnectionError);
-        }
-      } else {
-        // Try TON Connect with detected wallets
+      // If wallets are detected, try to connect to them
+      if (availableWallets.length > 0) {
+        console.log('Attempting to connect to detected TON wallet...');
         try {
-          console.log('Attempting to connect to detected TON wallet...');
-          
-          // Set up status change listener before connecting
-          this.connector.onStatusChange((wallet) => {
-            console.log('Wallet status changed:', wallet);
-            if (wallet) {
-              this.walletData = {
-                balance: '0',
-                address: wallet.account.address,
-                currency: 'TON',
-                isConnected: true
-              };
-              console.log('Wallet connected successfully:', this.walletData);
-              
-              // Immediately fetch balance after connection
-              this.getBalance();
-            } else {
-              console.log('Wallet disconnected');
-              this.walletData = null;
-            }
-          });
-
-          // Attempt connection to the first available wallet
           await this.connector.connect();
-          console.log('Connection request sent successfully');
+          console.log('Connection request sent to detected wallet');
           
-          // Wait a bit for the connection to be established
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          // Wait longer for connection to be established
+          await new Promise(resolve => setTimeout(resolve, 5000));
           
           // Check if connection was successful
           const wallet = await this.connector.wallet;
@@ -145,35 +106,76 @@ export class TONWalletService {
             return true;
           }
         } catch (tonConnectError) {
-          console.log('TON Connect failed:', tonConnectError);
+          console.log('TON Connect to detected wallet failed:', tonConnectError);
         }
       }
 
-      // If all connection attempts failed, fall back to demo mode
-      console.log('All connection attempts failed, using demo mode');
-      this.walletData = {
-        balance: '0.00',
-        address: 'EQD4FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_0t',
-        currency: 'TON',
-        isConnected: true
-      };
-      
-      console.log('Demo wallet connected:', this.walletData);
-      return true;
+      // If no wallets detected or connection failed, try universal connection
+      console.log('Attempting universal wallet connection...');
+      try {
+        await this.connector.connect();
+        console.log('Universal connection request sent');
+        
+        // Wait longer for connection to be established
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
+        // Check if connection was successful
+        const wallet = await this.connector.wallet;
+        if (wallet) {
+          console.log('Universal wallet connection confirmed:', wallet);
+          return true;
+        }
+      } catch (universalConnectionError) {
+        console.log('Universal connection failed:', universalConnectionError);
+      }
+
+      // Check if we have a wallet after all attempts
+      const finalWallet = await this.connector.wallet;
+      if (finalWallet) {
+        console.log('Wallet found after connection attempts:', finalWallet);
+        this.walletData = {
+          balance: '0',
+          address: finalWallet.account.address,
+          currency: 'TON',
+          isConnected: true
+        };
+        return true;
+      }
+
+      // Only fall back to demo mode if we're not in a Telegram mini-app
+      if (!isTelegramApp) {
+        console.log('Not in Telegram mini-app, using demo mode');
+        this.walletData = {
+          balance: '0.00',
+          address: 'EQD4FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_0t',
+          currency: 'TON',
+          isConnected: true
+        };
+        console.log('Demo wallet connected:', this.walletData);
+        return true;
+      } else {
+        console.log('In Telegram mini-app but wallet connection failed - user may need to install @wallet bot');
+        throw new Error('Wallet connection failed. Please make sure you have the @wallet bot installed in Telegram.');
+      }
       
     } catch (error) {
       console.error('Failed to connect wallet:', error);
-      // Even if there's an error, fall back to demo mode
-      console.log('Falling back to demo mode due to error');
-      this.walletData = {
-        balance: '0.00',
-        address: 'EQD4FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_0t',
-        currency: 'TON',
-        isConnected: true
-      };
       
-      console.log('Demo wallet connected after error fallback:', this.walletData);
-      return true;
+      // Only show demo mode in non-Telegram environments
+      if (!window.Telegram?.WebApp) {
+        console.log('Falling back to demo mode due to error');
+        this.walletData = {
+          balance: '0.00',
+          address: 'EQD4FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_0t',
+          currency: 'TON',
+          isConnected: true
+        };
+        console.log('Demo wallet connected after error fallback:', this.walletData);
+        return true;
+      } else {
+        // Re-throw the error for Telegram mini-app users
+        throw error;
+      }
     }
   }
 
@@ -190,6 +192,25 @@ export class TONWalletService {
   // Get wallet data
   getWalletData(): TONWalletData | null {
     return this.walletData;
+  }
+
+  // Get connection method for user feedback
+  getConnectionMethod(): string {
+    if (!this.walletData?.isConnected) {
+      return 'Not Connected';
+    }
+    
+    // Check if we're in Telegram mini-app
+    if (window.Telegram?.WebApp) {
+      return 'TON Connect (Telegram)';
+    }
+    
+    // Check if it's a demo wallet
+    if (this.walletData.address === 'EQD4FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_0t') {
+      return 'Demo Mode';
+    }
+    
+    return 'TON Connect';
   }
 
   // Get wallet balance

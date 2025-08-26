@@ -108,12 +108,12 @@ export default function WithdrawalForm({ userId, userBalance }: WithdrawalFormPr
 
 
                  <form onSubmit={handleSubmit} className="space-y-6">
-           <div className="space-y-2 pt-4">
-             <Label htmlFor="wallet">TON Wallet Address</Label>
+                     <div className="space-y-2 pt-4">
+            <Label htmlFor="wallet">TON Wallet Address</Label>
             <Input
               id="wallet"
               placeholder="EQBUNIp7rk76qbgMPq8vlW8fF4l56IcrOwzEpVjHFfzUY3Yv"
-              className="font-mono text-sm"
+              className="font-mono text-sm h-12"
               value={withdrawalData.destinationWallet}
               onChange={(e) => setWithdrawalData(prev => ({ ...prev, destinationWallet: e.target.value }))}
               required
@@ -122,7 +122,7 @@ export default function WithdrawalForm({ userId, userBalance }: WithdrawalFormPr
 
           <div className="space-y-2">
             <Label htmlFor="amount">Withdrawal Amount (USDT)</Label>
-            <div className="relative">
+            <div className="flex space-x-2">
               <Input
                 id="amount"
                 type="number"
@@ -132,14 +132,14 @@ export default function WithdrawalForm({ userId, userBalance }: WithdrawalFormPr
                 placeholder="0.00"
                 value={withdrawalData.amount}
                 onChange={(e) => setWithdrawalData(prev => ({ ...prev, amount: e.target.value }))}
-                className="pr-16"
+                className="flex-1 h-12"
                 required
               />
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-3 px-2 text-xs text-green-600 hover:text-green-700 font-medium transition-all duration-200 focus:outline-none focus:ring-0 focus:ring-offset-0 focus:shadow-none hover:bg-transparent hover:border-none hover:shadow-none"
+                className="h-12 px-4 text-sm text-green-600 font-medium border border-green-200 bg-green-50 hover:bg-green-100 transition-colors"
                 onClick={handleMaxWithdrawal}
               >
                 MAX

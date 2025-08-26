@@ -25,8 +25,56 @@ export default function AdminBalanceModal({ isOpen, onClose, userId }: AdminBala
     minCampaignSlots: "",
     minRewardAmount: ""
   });
+  
+  const [selectedSetting, setSelectedSetting] = useState("");
+  const [settingValue, setSettingValue] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Helper functions for dropdown interface
+  const getSettingLabel = (setting: string) => {
+    const labels: { [key: string]: string } = {
+      minWithdrawal: "Minimum Withdrawal Amount (USDT)",
+      withdrawalFee: "Withdrawal Fee (USDT)",
+      campaignCreationFee: "Campaign Creation Fee (USDT)",
+      minRewardAmount: "Minimum Reward per Task (USDT)",
+      minCampaignSlots: "Minimum Campaign Slots"
+    };
+    return labels[setting] || "";
+  };
+
+  const getSettingPlaceholder = (setting: string) => {
+    const placeholders: { [key: string]: string } = {
+      minWithdrawal: "e.g., 5.00",
+      withdrawalFee: "e.g., 0.50",
+      campaignCreationFee: "e.g., 1.00",
+      minRewardAmount: "e.g., 0.015",
+      minCampaignSlots: "e.g., 5"
+    };
+    return placeholders[setting] || "";
+  };
+
+  const getSettingStep = (setting: string) => {
+    const steps: { [key: string]: string } = {
+      minWithdrawal: "0.01",
+      withdrawalFee: "0.01",
+      campaignCreationFee: "0.01",
+      minRewardAmount: "0.001",
+      minCampaignSlots: "1"
+    };
+    return steps[setting] || "0.01";
+  };
+
+  const getSettingMin = (setting: string) => {
+    const mins: { [key: string]: string } = {
+      minWithdrawal: "0",
+      withdrawalFee: "0",
+      campaignCreationFee: "0",
+      minRewardAmount: "0",
+      minCampaignSlots: "1"
+    };
+    return mins[setting] || "0";
+  };
 
   // Load existing system settings when modal opens
   useEffect(() => {
@@ -212,7 +260,7 @@ export default function AdminBalanceModal({ isOpen, onClose, userId }: AdminBala
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <DollarSign className="w-5 h-5" />
@@ -220,40 +268,52 @@ export default function AdminBalanceModal({ isOpen, onClose, userId }: AdminBala
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="targetUserId">Target User Telegram ID</Label>
-            <Input
-              id="targetUserId"
-              placeholder="e.g., 5154336054"
-              value={targetUserId}
-              onChange={(e) => setTargetUserId(e.target.value)}
-            />
-          </div>
+        <div className="mt-6">
+          <Tabs defaultValue="balance" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="balance">Balance Adjustment</TabsTrigger>
+            <TabsTrigger value="advanced">
+              <Settings className="w-4 h-4 mr-1" />
+              Advanced
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="balance" className="space-y-4">
+            {/* Form fields for balance operations */}
+            <div className="space-y-4 mb-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="targetUserId">Target User Telegram ID</Label>
+                  <Input
+                    id="targetUserId"
+                    placeholder="e.g., 5154336054"
+                    value={targetUserId}
+                    onChange={(e) => setTargetUserId(e.target.value)}
+                  />
+                </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="amount">Amount (USDT)</Label>
-            <Input
-              id="amount"
-              placeholder="e.g., 10.50"
-              type="number"
-              step="0.01"
-              min="0"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-          </div>
-
-          <Tabs defaultValue="set" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="set">Set Balance</TabsTrigger>
-              <TabsTrigger value="add">Add Balance</TabsTrigger>
-              <TabsTrigger value="deduct">Deduct Balance</TabsTrigger>
-              <TabsTrigger value="advanced">
-                <Settings className="w-4 h-4 mr-1" />
-                Advanced
-              </TabsTrigger>
-            </TabsList>
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Amount (USDT)</Label>
+                  <Input
+                    id="amount"
+                    placeholder="e.g., 10.50"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+            
+            {/* Operation Sub-Tabs */}
+            <Tabs defaultValue="set" className="w-full">
+              <TabsList className="grid w-full grid-cols-3 mb-4">
+                <TabsTrigger value="set">Set Balance</TabsTrigger>
+                <TabsTrigger value="add">Add Balance</TabsTrigger>
+                <TabsTrigger value="deduct">Deduct Balance</TabsTrigger>
+              </TabsList>
 
             <TabsContent value="set" className="space-y-4">
               <p className="text-sm text-muted-foreground">
@@ -295,95 +355,110 @@ export default function AdminBalanceModal({ isOpen, onClose, userId }: AdminBala
                 {deductBalanceMutation.isPending ? "Deducting..." : "Deduct Balance"}
               </Button>
             </TabsContent>
+            </Tabs>
+          </TabsContent>
+          
+          <TabsContent value="advanced" className="space-y-4">
+            {/* Header Section */}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 text-center">
+              <p className="text-base text-amber-800 font-semibold mb-2">⚙️ System Configuration</p>
+              <p className="text-sm text-amber-700">Adjust global platform settings and limits</p>
+            </div>
 
-            <TabsContent value="advanced" className="space-y-4">
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
-                <p className="text-sm text-amber-800 font-medium">⚙️ System Configuration</p>
-                <p className="text-xs text-amber-700">Adjust global platform settings and limits</p>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="minWithdrawal">Minimum Withdrawal Amount (USDT)</Label>
-                  <Input
-                    id="minWithdrawal"
-                    placeholder="e.g., 5.00"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={systemSettings.minWithdrawal}
-                    onChange={(e) => setSystemSettings(prev => ({ ...prev, minWithdrawal: e.target.value }))}
-                  />
+            {/* Current Settings Overview */}
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 mb-3">
+              <h4 className="text-sm font-semibold text-slate-800 mb-2">Current System Settings</h4>
+              <div className="grid grid-cols-1 gap-1">
+                <div className="flex justify-between items-center py-1 border-b border-slate-200 last:border-b-0">
+                  <span className="text-xs text-slate-600">Min Campaign Slots</span>
+                  <span className="text-xs font-medium text-slate-800">{systemSettings.minCampaignSlots || "Not set"}</span>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="withdrawalFee">Withdrawal Fee (USDT)</Label>
-                  <Input
-                    id="withdrawalFee"
-                    placeholder="e.g., 0.50"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={systemSettings.withdrawalFee}
-                    onChange={(e) => setSystemSettings(prev => ({ ...prev, withdrawalFee: e.target.value }))}
-                  />
+                <div className="flex justify-between items-center py-1 border-b border-slate-200 last:border-b-0">
+                  <span className="text-xs text-slate-600">Min Withdrawal (USDT)</span>
+                  <span className="text-xs font-medium text-slate-800">{systemSettings.minWithdrawal || "Not set"}</span>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="campaignCreationFee">Campaign Creation Fee (USDT)</Label>
-                  <Input
-                    id="campaignCreationFee"
-                    placeholder="e.g., 1.00"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={systemSettings.campaignCreationFee}
-                    onChange={(e) => setSystemSettings(prev => ({ ...prev, campaignCreationFee: e.target.value }))}
-                  />
+                <div className="flex justify-between items-center py-1 border-b border-slate-200 last:border-b-0">
+                  <span className="text-xs text-slate-600">Withdrawal Fee (USDT)</span>
+                  <span className="text-xs font-medium text-slate-800">{systemSettings.withdrawalFee || "Not set"}</span>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="minCampaignSlots">Minimum Campaign Slots</Label>
-                  <Input
-                    id="minCampaignSlots"
-                    placeholder="e.g., 5"
-                    type="number"
-                    min="1"
-                    value={systemSettings.minCampaignSlots}
-                    onChange={(e) => setSystemSettings(prev => ({ ...prev, minCampaignSlots: e.target.value }))}
-                  />
+                <div className="flex justify-between items-center py-1 border-b border-slate-200 last:border-b-0">
+                  <span className="text-xs text-slate-600">Campaign Fee (USDT)</span>
+                  <span className="text-xs font-medium text-slate-800">{systemSettings.campaignCreationFee || "Not set"}</span>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="minRewardAmount">Minimum Reward per Task (USDT)</Label>
-                  <Input
-                    id="minRewardAmount"
-                    placeholder="e.g., 0.015"
-                    type="number"
-                    step="0.001"
-                    min="0"
-                    value={systemSettings.minRewardAmount}
-                    onChange={(e) => setSystemSettings(prev => ({ ...prev, minRewardAmount: e.target.value }))}
-                  />
+                <div className="flex justify-between items-center py-1 border-b border-slate-200 last:border-b-0">
+                  <span className="text-xs text-slate-600">Min Reward (USDT)</span>
+                  <span className="text-xs font-medium text-slate-800">{systemSettings.minRewardAmount || "Not set"}</span>
                 </div>
               </div>
+            </div>
 
+            {/* Form Fields Section */}
+            <div className="space-y-4">
+              {/* Setting Selection Dropdown */}
+              <div className="space-y-2">
+                <Label htmlFor="settingType" className="text-sm font-medium text-slate-700">
+                  Select Setting to Update
+                </Label>
+                <select
+                  id="settingType"
+                  value={selectedSetting}
+                  onChange={(e) => setSelectedSetting(e.target.value)}
+                  className="w-full text-sm h-10 border border-slate-200 rounded-md px-3 py-2 focus:border-amber-400 focus:ring-amber-400 focus:outline-none bg-white"
+                >
+                  <option value="">Choose a setting...</option>
+                  <option value="minWithdrawal">Minimum Withdrawal Amount (USDT)</option>
+                  <option value="withdrawalFee">Withdrawal Fee (USDT)</option>
+                  <option value="campaignCreationFee">Campaign Creation Fee (USDT)</option>
+                  <option value="minRewardAmount">Minimum Reward per Task (USDT)</option>
+                  <option value="minCampaignSlots">Minimum Campaign Slots</option>
+                </select>
+              </div>
+
+              {/* Value Input Field */}
+              {selectedSetting && (
+                <div className="space-y-2">
+                  <Label htmlFor="settingValue" className="text-sm font-medium text-slate-700">
+                    {getSettingLabel(selectedSetting)}
+                  </Label>
+                  <Input
+                    id="settingValue"
+                    placeholder={getSettingPlaceholder(selectedSetting)}
+                    type="number"
+                    step={getSettingStep(selectedSetting)}
+                    min={getSettingMin(selectedSetting)}
+                    value={settingValue}
+                    onChange={(e) => setSettingValue(e.target.value)}
+                    className="text-sm h-10 border-slate-200 focus:border-amber-400 focus:ring-amber-400"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Action Section */}
+            <div className="pt-3 border-t border-slate-200">
               <Button 
                 onClick={handleUpdateSystemSettings} 
                 disabled={updateSystemSettingsMutation.isPending}
-                className="w-full bg-purple-600 hover:bg-purple-700"
+                className="w-full bg-purple-600 hover:bg-purple-700 text-sm h-10 font-medium"
               >
                 <Settings className="w-4 h-4 mr-2" />
                 {updateSystemSettingsMutation.isPending ? "Updating..." : "Update System Settings"}
               </Button>
+            </div>
 
-              <div className="text-xs text-slate-500 bg-slate-50 rounded p-2">
-                <strong>Note:</strong> These settings affect the entire platform. Changes take effect immediately for new transactions/campaigns.
+            {/* Note Section */}
+            <div className="text-sm text-slate-500 bg-slate-50 rounded-lg p-4 border border-slate-200">
+              <div className="flex items-start space-x-2">
+                <span className="text-amber-500 mt-0.5">💡</span>
+                <div>
+                  <strong className="text-slate-600">Note:</strong> These settings affect the entire platform. Changes take effect immediately for new transactions/campaigns.
+                </div>
               </div>
-            </TabsContent>
-          </Tabs>
+            </div>
+          </TabsContent>
+        </Tabs>
         </div>
-      </DialogContent>
-    </Dialog>
-  );
+        </DialogContent>
+      </Dialog>
+    );
 }

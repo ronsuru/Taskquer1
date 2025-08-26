@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,11 @@ import type { InsertCampaign } from "@shared/schema";
 
 interface CampaignFormProps {
   userId: string;
+  onClose?: () => void;
+  onFormChange?: (hasChanges: boolean) => void;
 }
 
-export default function CampaignForm({ userId }: CampaignFormProps) {
+export default function CampaignForm({ userId, onClose, onFormChange }: CampaignFormProps) {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -24,6 +26,17 @@ export default function CampaignForm({ userId }: CampaignFormProps) {
     rewardAmount: "0.015",
     proofType: "image",
   });
+
+  // Track form changes and notify parent
+  useEffect(() => {
+    const hasChanges = formData.title !== "" || 
+                      formData.description !== "" || 
+                      formData.platform !== "" || 
+                      formData.totalSlots !== 5 || 
+                      formData.rewardAmount !== "0.015";
+    
+    onFormChange?.(hasChanges);
+  }, [formData, onFormChange]);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -49,6 +62,10 @@ export default function CampaignForm({ userId }: CampaignFormProps) {
         rewardAmount: "0.015",
         proofType: "image",
       });
+      // Close modal if onClose is provided
+      if (onClose) {
+        onClose();
+      }
     },
     onError: (error: any) => {
       toast({
@@ -114,28 +131,29 @@ export default function CampaignForm({ userId }: CampaignFormProps) {
   };
 
   return (
-    <Card>
+    <Card className="overflow-hidden">
       <CardHeader>
-        <CardTitle>Create New Campaign</CardTitle>
+        <CardTitle className="text-base font-semibold">Create New Campaign</CardTitle>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <CardContent className="pt-0">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Campaign Title *</Label>
+              <Label htmlFor="title" className="text-sm font-medium text-slate-700">Campaign Title *</Label>
               <Input
                 id="title"
                 placeholder="e.g. Follow our Instagram account"
                 value={formData.title}
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                 required
+                className="text-sm h-10"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="platform">Platform *</Label>
+              <Label htmlFor="platform" className="text-sm font-medium text-slate-700">Platform *</Label>
               <Select value={formData.platform} onValueChange={(value) => setFormData(prev => ({ ...prev, platform: value }))}>
-                <SelectTrigger>
+                <SelectTrigger className="text-sm h-10">
                   <SelectValue placeholder="Select Platform" />
                 </SelectTrigger>
                 <SelectContent>
@@ -149,9 +167,9 @@ export default function CampaignForm({ userId }: CampaignFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="proofType">Required Proof Type *</Label>
+            <Label htmlFor="proofType" className="text-sm font-medium text-slate-700">Required Proof Type *</Label>
             <Select value={formData.proofType} onValueChange={(value) => setFormData(prev => ({ ...prev, proofType: value }))}>
-              <SelectTrigger>
+              <SelectTrigger className="text-sm h-10">
                 <SelectValue placeholder="Select proof type" />
               </SelectTrigger>
               <SelectContent>
@@ -159,7 +177,7 @@ export default function CampaignForm({ userId }: CampaignFormProps) {
                 <SelectItem value="link">🔗 Link/Profile URL - Users submit profile or task links</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-sm text-slate-600">
+            <p className="text-xs text-slate-600">
               {formData.proofType === "image" ? 
                 "Users will submit screenshots or images showing task completion" : 
                 "Users will submit links to their profiles or task URLs as proof"
@@ -168,7 +186,7 @@ export default function CampaignForm({ userId }: CampaignFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Campaign Description *</Label>
+            <Label htmlFor="description" className="text-sm font-medium text-slate-700">Campaign Description *</Label>
             <Textarea
               id="description"
               rows={4}
@@ -176,12 +194,13 @@ export default function CampaignForm({ userId }: CampaignFormProps) {
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               required
+              className="text-sm"
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="slots">Number of Slots *</Label>
+              <Label htmlFor="slots" className="text-sm font-medium text-slate-700">Number of Slots *</Label>
               <Input
                 id="slots"
                 type="number"
@@ -190,11 +209,12 @@ export default function CampaignForm({ userId }: CampaignFormProps) {
                 value={formData.totalSlots}
                 onChange={(e) => setFormData(prev => ({ ...prev, totalSlots: parseInt(e.target.value) || 5 }))}
                 required
+                className="text-sm h-10"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="reward">Reward per Task (USDT) *</Label>
+              <Label htmlFor="reward" className="text-sm font-medium text-slate-700">Reward per Task (USDT) *</Label>
               <Input
                 id="reward"
                 type="number"
@@ -204,27 +224,28 @@ export default function CampaignForm({ userId }: CampaignFormProps) {
                 value={formData.rewardAmount}
                 onChange={(e) => setFormData(prev => ({ ...prev, rewardAmount: e.target.value }))}
                 required
+                className="text-sm h-10"
               />
             </div>
-            
-            <div className="space-y-2">
-              <Label>Total Cost (USDT)</Label>
-              <div className="relative">
-                <Input
-                  readOnly
-                  value={costs.total}
-                  className="bg-slate-50 font-medium"
-                />
-                <div className="absolute right-3 top-3 text-xs text-slate-500">
-                  +1% fee
-                </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-slate-700">Total Cost (USDT)</Label>
+            <div className="relative">
+              <Input
+                readOnly
+                value={costs.total}
+                className="bg-slate-50 font-medium text-sm h-10"
+              />
+              <div className="absolute right-3 top-3 text-xs text-slate-500">
+                +1% fee
               </div>
             </div>
           </div>
 
           <div className="bg-slate-50 rounded-lg p-4">
-            <h4 className="font-semibold text-slate-900 mb-3">Funding Details</h4>
-            <div className="space-y-2 text-sm">
+            <h4 className="text-sm font-semibold text-slate-900 mb-3">Funding Details</h4>
+            <div className="space-y-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-slate-600">Slots × Reward:</span>
                 <span className="font-medium text-slate-900">{costs.subtotal} USDT</span>
@@ -234,7 +255,7 @@ export default function CampaignForm({ userId }: CampaignFormProps) {
                 <span className="font-medium text-slate-900">{costs.fee} USDT</span>
               </div>
               <div className="h-px bg-slate-200 my-2"></div>
-              <div className="flex justify-between text-base">
+              <div className="flex justify-between text-sm">
                 <span className="font-semibold text-slate-900">Total Required:</span>
                 <span className="font-bold text-telegram-blue">{costs.total} USDT</span>
               </div>
@@ -244,7 +265,7 @@ export default function CampaignForm({ userId }: CampaignFormProps) {
           <div className="bg-blue-50 rounded-lg p-4">
             <div className="flex items-start space-x-2">
               <i className="fas fa-shield-alt text-telegram-blue mt-0.5"></i>
-              <div className="text-sm text-blue-800">
+              <div className="text-xs text-blue-800">
                 <p className="font-medium mb-1">Escrow Protection:</p>
                 <p className="text-blue-700">
                   Funds will be held in escrow (EQBUNIp7rk76qbgMPq8vlW8fF4l56IcrOwzEpVjHFfzUY3Yv) until tasks are completed and approved. 
@@ -254,13 +275,13 @@ export default function CampaignForm({ userId }: CampaignFormProps) {
             </div>
           </div>
 
-          <div className="flex space-x-4">
-            <Button type="button" variant="outline" className="flex-1">
+          <div className="flex space-x-4 pb-2">
+            <Button type="button" variant="outline" className="flex-1 text-sm h-10">
               Save Draft
             </Button>
             <Button 
               type="submit" 
-              className="flex-1 bg-telegram-blue hover:bg-blue-600"
+              className="flex-1 bg-telegram-blue hover:bg-blue-600 text-sm h-10"
               disabled={createCampaignMutation.isPending}
             >
               {createCampaignMutation.isPending ? "Creating..." : "Fund & Publish Campaign"}

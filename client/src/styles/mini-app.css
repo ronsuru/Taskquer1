@@ -1,25 +1,31 @@
-/* Telegram Mini App - Vertical Resolution Optimization */
-/* Target: 1080x1980 (Portrait Mode) */
+/* Telegram Mini App - iOS Design System */
+/* Modern iOS-like UI with rounded corners, shadows, and smooth animations */
 
-/* Root container for optimal mini-app dimensions */
+/* Root container with iOS styling */
 #root {
   width: 100vw;
   min-height: 100vh;
   max-width: 100vw;
   overflow-x: hidden;
   position: relative;
+  background: #f2f2f7; /* iOS system background */
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Force optimal dimensions for 1080x1980 resolution */
+/* Force optimal dimensions for larger screens */
 @media screen and (min-width: 1080px) {
   #root {
     max-width: 1080px;
     margin: 0 auto;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.08);
+    border-radius: 20px;
+    overflow: hidden;
   }
 }
 
-/* Ensure the app takes full viewport height */
+/* iOS-style app container */
 .mini-app-container {
   width: 100%;
   min-height: 100vh;
@@ -27,11 +33,12 @@
   margin: 0;
   padding: 0;
   overflow-x: hidden;
-  /* Handle scrollbar behavior */
   overflow-y: auto;
   scrollbar-gutter: auto;
-  /* Prevent any layout shifts */
   position: relative;
+  background: #f2f2f7; /* iOS system background */
+  /* Ensure it doesn't interfere with fixed navigation */
+  z-index: 1;
 }
 
 /* Optimize for mobile viewport */
@@ -48,21 +55,21 @@
 .telegram-mini-app {
   width: 100%;
   min-height: 100vh;
-  background: #ffffff;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f2f2f7; /* iOS system background */
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Ensure content fits within mini-app bounds */
+/* iOS-style content area */
 .mini-app-content {
   width: 100%;
   max-width: 100vw;
-  padding: 0;
+  padding: 16px;
   margin: 0;
   box-sizing: border-box;
-  /* Ensure content doesn't get hidden behind bottom navigation */
-  padding-bottom: 80px;
+  /* Ensure content doesn't get hidden behind fixed bottom navigation */
+  padding-bottom: 100px; /* Adequate padding for fixed nav */
   /* Prevent horizontal scroll */
   overflow-x: hidden;
   /* Handle vertical scrolling with floating scrollbar */
@@ -73,12 +80,12 @@
   -webkit-overflow-scrolling: touch;
   /* Custom scrollbar styling for floating effect - iOS Style */
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
 }
 
-/* Custom scrollbar styling for WebKit browsers (Chrome, Safari, Edge) - iOS Style */
+/* iOS-style scrollbar styling for WebKit browsers */
 .mini-app-content::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
   background: transparent;
 }
 
@@ -89,74 +96,88 @@
 }
 
 .mini-app-content::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 4px;
-  border: 2px solid transparent;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+  border: none;
   background-clip: content-box;
-  min-height: 40px;
-  /* Make it truly float */
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+  min-height: 30px;
+  /* iOS-style subtle shadow */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.mini-app-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.4);
-  background-clip: content-box;
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.15);
-}
+
 
 .mini-app-content::-webkit-scrollbar-thumb:active {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.35);
   background-clip: content-box;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
 }
 
 /* iOS-style scrollbar for mobile devices */
 @media (max-width: 768px) {
   .mini-app-content::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
     background: transparent;
   }
   
   .mini-app-content::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.25);
-    border-radius: 3px;
-    min-height: 30px;
-    /* Make it truly float on mobile */
-    box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+    min-height: 20px;
+    /* iOS-style subtle shadow */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   }
   
-  .mini-app-content::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.35);
-    box-shadow: 0 0 4px rgba(0, 0, 0, 0.15);
-  }
+
   
   .mini-app-content::-webkit-scrollbar-thumb:active {
-    background: rgba(0, 0, 0, 0.45);
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.4);
+    box-shadow: 0 3px 4px rgba(0, 0, 0, 0.2);
   }
 }
 
-/* Bottom navigation optimization for mini-app */
+/* Bottom Navigation Bar - Working Version */
 .mini-app-bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  width: 100%;
-  background: #ffffff;
-  border-top: 1px solid #e5e7eb;
-  z-index: 1000;
-  padding: 8px 16px;
-  box-sizing: border-box;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-  /* Ensure navigation stays in place regardless of scrollbar */
-  transform: translateZ(0);
-  /* Force the navigation to stay in place */
   position: fixed !important;
-  /* Prevent any margin adjustments */
-  margin: 0 !important;
-  /* Ensure it's always at the bottom */
   bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  background: white !important;
+  border-top: 1px solid #e5e7eb !important;
+  z-index: 1000 !important;
+  padding: 16px 24px !important;
+  box-sizing: border-box !important;
+}
+
+/* Sticky top header */
+.mini-app-header {
+  position: sticky !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  background: white !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  z-index: 40 !important;
+  padding: 24px 16px !important;
+  box-sizing: border-box !important;
+}
+
+/* Admin modal positioning to avoid navigation overlap */
+[data-radix-dialog-content] {
+  margin-bottom: 80px !important;
+  max-height: calc(100vh - 120px) !important;
+}
+
+/* Dashboard scrolling behavior - Hidden scrollbar */
+.mini-app-content {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+.mini-app-content::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 /* Responsive adjustments for different screen sizes */
@@ -217,8 +238,8 @@
     padding-left: max(16px, env(safe-area-inset-left));
     padding-right: max(16px, env(safe-area-inset-right));
     padding-bottom: max(8px, env(safe-area-inset-bottom));
-    /* Ensure navigation is above safe area */
-    bottom: max(0px, env(safe-area-inset-bottom));
+    /* Keep navigation fixed at bottom */
+    bottom: 0 !important;
   }
   
   .mini-app-content {
@@ -233,8 +254,8 @@ body, html {
   width: 100%;
   margin: 0;
   padding: 0;
-  /* Remove scrollbar gutter to allow floating scrollbars */
-  scrollbar-gutter: auto;
+  /* Force scrollbar to always be present to prevent layout shifts */
+  scrollbar-gutter: stable;
   /* Allow vertical scrolling */
   overflow-y: auto;
 }
@@ -246,10 +267,45 @@ button, .nav-item {
   touch-action: manipulation;
 }
 
-/* Smooth scrolling for mini-app */
+/* iOS-style animations and transitions */
 .mini-app-container {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+}
+
+/* iOS-style page transitions */
+.mini-app-content > div {
+  animation: fadeInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* iOS-style transitions for interactive elements */
+.nav-item, .card, button {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* iOS-style loading states */
+.loading {
+  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* Additional overflow prevention for specific pages */
@@ -259,19 +315,71 @@ button, .nav-item {
   overflow-x: hidden;
 }
 
-/* Ensure navigation bar is completely stable */
+/* Ensure navigation bar is always visible and properly positioned */
 .mini-app-bottom-nav {
-  /* Force hardware acceleration */
-  will-change: transform;
-  /* Ensure it's always rendered at the same position */
-  backface-visibility: hidden;
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 9999 !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-top: 0.5px solid rgba(0, 0, 0, 0.1) !important;
+  padding: 12px 16px 24px !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.05) !important;
 }
 
-/* Ensure gradient boxes don't cause overflow */
+
+
+/* iOS-style component styling */
 .bg-gradient-to-r {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  border-radius: 16px; /* iOS-style rounded corners */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); /* iOS-style subtle shadow */
+}
+
+/* iOS-style card components */
+.card, .bg-slate-50, .bg-blue-50, .bg-green-50 {
+  border-radius: 16px !important; /* iOS-style rounded corners */
+  border: none !important; /* Remove borders for clean look */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important; /* iOS-style subtle shadow */
+  background: rgba(255, 255, 255, 0.95) !important; /* iOS-style translucent background */
+  backdrop-filter: blur(10px) !important; /* iOS-style backdrop blur */
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+/* iOS-style buttons */
+button, .btn, [class*="bg-"] {
+  border-radius: 12px !important; /* iOS-style rounded corners */
+  border: none !important; /* Remove borders for clean look */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important; /* iOS-style subtle shadow */
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important; /* iOS-style smooth transitions */
+}
+
+
+
+
+
+/* iOS-style input and form elements */
+input, textarea, select {
+  border-radius: 12px !important; /* iOS-style rounded corners */
+  border: 1px solid rgba(0, 0, 0, 0.1) !important; /* iOS-style subtle border */
+  background: rgba(255, 255, 255, 0.9) !important; /* iOS-style translucent background */
+  backdrop-filter: blur(10px) !important; /* iOS-style backdrop blur */
+  -webkit-backdrop-filter: blur(10px) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important; /* iOS-style subtle shadow */
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important; /* iOS-style smooth transitions */
+  padding: 12px 16px !important; /* iOS-style padding */
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: #007AFF !important; /* iOS blue accent color */
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1) !important; /* iOS-style focus ring */
+  outline: none !important;
 }
 
 /* Fix for px-6 padding causing overflow - but preserve margins */
@@ -281,3 +389,51 @@ button, .nav-item {
   box-sizing: border-box;
   overflow-x: hidden;
 }
+
+/* Floating scrollbar that doesn't affect layout */
+.mini-app-content::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+
+.mini-app-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  min-height: 40px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.mini-app-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.mini-app-content::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* Mobile scrollbar styling */
+@media (max-width: 768px) {
+  .mini-app-content::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .mini-app-content::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
+    min-height: 30px;
+  }
+}
+
+/* Ensure scrollable content has consistent margins */
+.mini-app-content {
+  scrollbar-gutter: stable;
+  padding-right: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Force scrollbar to always be present */
+.mini-app-container {
+  scrollbar-gutter: stable;
+}
+
+
