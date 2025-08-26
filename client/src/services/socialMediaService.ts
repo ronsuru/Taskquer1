@@ -7,121 +7,66 @@ export interface SocialMediaAccount {
   avatarUrl?: string;
 }
 
-export interface SocialMediaAuthConfig {
-  facebook: {
-    appId: string;
-    redirectUri: string;
-    scope: string;
-  };
-  twitter: {
-    clientId: string;
-    redirectUri: string;
-    scope: string;
-  };
-  youtube: {
-    clientId: string;
-    redirectUri: string;
-    scope: string;
-  };
-  discord: {
-    clientId: string;
-    redirectUri: string;
-    scope: string;
-  };
-  tiktok: {
-    clientId: string;
-    redirectUri: string;
-    scope: string;
-  };
-}
+// No OAuth config needed - users connect their own accounts
 
 class SocialMediaService {
-  private config: SocialMediaAuthConfig;
   private connectedAccounts: Map<string, SocialMediaAccount> = new Map();
 
   constructor() {
-    // Initialize with your app's OAuth credentials
-    this.config = {
-      facebook: {
-        appId: import.meta.env.VITE_FACEBOOK_APP_ID || 'your-facebook-app-id',
-        redirectUri: `${window.location.origin}/auth/facebook/callback`,
-        scope: 'email,public_profile'
-      },
-      twitter: {
-        clientId: import.meta.env.VITE_TWITTER_CLIENT_ID || 'your-twitter-client-id',
-        redirectUri: `${window.location.origin}/auth/twitter/callback`,
-        scope: 'tweet.read,users.read'
-      },
-      youtube: {
-        clientId: import.meta.env.VITE_YOUTUBE_CLIENT_ID || 'your-youtube-client-id',
-        redirectUri: `${window.location.origin}/auth/youtube/callback`,
-        scope: 'https://www.googleapis.com/auth/youtube.readonly'
-      },
-      discord: {
-        clientId: import.meta.env.VITE_DISCORD_CLIENT_ID || 'your-discord-client-id',
-        redirectUri: `${window.location.origin}/auth/discord/callback`,
-        scope: 'identify'
-      },
-      tiktok: {
-        clientId: import.meta.env.VITE_TIKTOK_CLIENT_ID || 'your-tiktok-client-id',
-        redirectUri: `${window.location.origin}/auth/tiktok/callback`,
-        scope: 'user.info.basic'
-      }
-    };
+    // No OAuth credentials needed - users connect their own accounts
   }
 
-  // Facebook OAuth
+  // Facebook Connection
   async connectFacebook(): Promise<void> {
-    const { appId, redirectUri, scope } = this.config.facebook;
-    const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=code`;
-    
-    // Open Facebook OAuth in a popup or redirect
-    this.openOAuthWindow(authUrl, 'facebook');
+    // Direct link to Facebook login - users authenticate with their own accounts
+    const facebookUrl = 'https://www.facebook.com/login';
+    this.openPlatformWindow(facebookUrl, 'facebook');
   }
 
-  // Twitter OAuth
+  // Twitter Connection
   async connectTwitter(): Promise<void> {
-    const { clientId, redirectUri, scope } = this.config.twitter;
-    const authUrl = `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&state=state`;
-    
-    this.openOAuthWindow(authUrl, 'twitter');
+    // Direct link to Twitter login - users authenticate with their own accounts
+    const twitterUrl = 'https://twitter.com/i/flow/login';
+    this.openPlatformWindow(twitterUrl, 'twitter');
   }
 
-  // YouTube OAuth
+  // YouTube Connection
   async connectYouTube(): Promise<void> {
-    const { clientId, redirectUri, scope } = this.config.youtube;
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=code&access_type=offline`;
-    
-    this.openOAuthWindow(authUrl, 'youtube');
+    // Direct link to YouTube login - users authenticate with their own accounts
+    const youtubeUrl = 'https://accounts.google.com/signin/v2/identifier?service=youtube';
+    this.openPlatformWindow(youtubeUrl, 'youtube');
   }
 
-  // Discord OAuth
+  // Discord Connection
   async connectDiscord(): Promise<void> {
-    const { clientId, redirectUri, scope } = this.config.discord;
-    const authUrl = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
-    
-    this.openOAuthWindow(authUrl, 'discord');
+    // Direct link to Discord login - users authenticate with their own accounts
+    const discordUrl = 'https://discord.com/login';
+    this.openPlatformWindow(discordUrl, 'discord');
   }
 
-  // TikTok OAuth
+  // TikTok Connection
   async connectTikTok(): Promise<void> {
-    const { clientId, redirectUri, scope } = this.config.tiktok;
-    const authUrl = `https://www.tiktok.com/v2/auth/authorize?client_key=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=code&state=state`;
-    
-    this.openOAuthWindow(authUrl, 'tiktok');
+    // Direct link to TikTok login - users authenticate with their own accounts
+    const tiktokUrl = 'https://www.tiktok.com/login';
+    this.openPlatformWindow(tiktokUrl, 'tiktok');
   }
 
-  // Open OAuth window
-  private openOAuthWindow(authUrl: string, platform: string): void {
+  // Open platform window for user authentication
+  private openPlatformWindow(platformUrl: string, platform: string): void {
     // For Telegram Mini App, we'll use the Telegram WebApp's openTelegramLink method
     if (window.Telegram?.WebApp) {
       // Open in Telegram's built-in browser
-      window.Telegram.WebApp.openTelegramLink(authUrl);
+      window.Telegram.WebApp.openTelegramLink(platformUrl);
+      
+      // Simulate successful connection after a delay (for demo purposes)
+      setTimeout(() => {
+        this.simulateConnection(platform);
+      }, 2000);
     } else {
       // Fallback to popup window for regular web browsers
       const popup = window.open(
-        authUrl,
-        `${platform}_oauth`,
+        platformUrl,
+        `${platform}_login`,
         'width=500,height=600,scrollbars=yes,resizable=yes'
       );
       
@@ -130,18 +75,17 @@ class SocialMediaService {
         const checkClosed = setInterval(() => {
           if (popup.closed) {
             clearInterval(checkClosed);
-            this.checkOAuthStatus(platform);
+            this.simulateConnection(platform);
           }
         }, 1000);
       }
     }
   }
 
-  // Check OAuth status after redirect
-  private async checkOAuthStatus(platform: string): Promise<void> {
+  // Simulate successful connection (for demo purposes)
+  private simulateConnection(platform: string): void {
     try {
-      // This would typically check with your backend to see if the OAuth was successful
-      // For now, we'll simulate a successful connection
+      // Create a mock connected account
       const mockAccount: SocialMediaAccount = {
         platform,
         username: `@${platform}_user_${Date.now()}`,
@@ -159,7 +103,7 @@ class SocialMediaService {
       }));
 
     } catch (error) {
-      console.error(`Failed to check ${platform} OAuth status:`, error);
+      console.error(`Failed to simulate ${platform} connection:`, error);
     }
   }
 
@@ -194,20 +138,7 @@ class SocialMediaService {
     return this.connectedAccounts.get(platform);
   }
 
-  // Handle OAuth callback (called from your backend after successful OAuth)
-  handleOAuthCallback(platform: string, code: string, state?: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      // This would typically send the authorization code to your backend
-      // to exchange it for an access token
-      console.log(`Received OAuth callback for ${platform} with code:`, code);
-      
-      // Simulate API call to your backend
-      setTimeout(() => {
-        this.checkOAuthStatus(platform);
-        resolve();
-      }, 1000);
-    });
-  }
+  // This method is no longer needed with direct platform login
 }
 
 // Export singleton instance
