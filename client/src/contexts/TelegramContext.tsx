@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { initTelegramApp, getTelegramUser, isTelegramWebApp } from '../lib/telegram';
+import { initTelegramApp, getTelegramUser, getTelegramUserFallback, isTelegramWebApp } from '../lib/telegram';
 
 interface TelegramUser {
   id: number;
@@ -45,8 +45,13 @@ export const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) 
         // Initialize Telegram Web App
         const webApp = initTelegramApp();
         
-        // Get user data
-        const telegramUser = getTelegramUser();
+        // Get user data with fallback
+        let telegramUser = getTelegramUser();
+        if (!telegramUser) {
+          console.log('🔄 Primary method failed, trying fallback...');
+          telegramUser = getTelegramUserFallback();
+        }
+        
         if (telegramUser) {
           setUser(telegramUser);
         }

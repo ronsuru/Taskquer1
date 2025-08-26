@@ -2,26 +2,46 @@ import { WebApp } from '@twa-dev/sdk';
 
 // Telegram Web App initialization
 export const initTelegramApp = () => {
-  // Initialize the Telegram Web App
-  WebApp.ready();
+  console.log('🚀 Initializing Telegram Web App...');
+  console.log('Environment:', process.env.NODE_ENV);
+  console.log('Current URL:', typeof window !== 'undefined' ? window.location.href : 'N/A');
   
-  // Expand the app to full height
-  WebApp.expand();
-  
-  // Set the header color to match your brand
-  WebApp.setHeaderColor('#1a1a1a');
-  
-  // Enable closing confirmation
-  WebApp.enableClosingConfirmation();
-  
-  return WebApp;
+  try {
+    // Initialize the Telegram Web App
+    WebApp.ready();
+    console.log('✅ WebApp.ready() called');
+    
+    // Expand the app to full height
+    WebApp.expand();
+    console.log('✅ WebApp.expand() called');
+    
+    // Set the header color to match your brand
+    WebApp.setHeaderColor('#1a1a1a');
+    console.log('✅ WebApp.setHeaderColor() called');
+    
+    // Enable closing confirmation
+    WebApp.enableClosingConfirmation();
+    console.log('✅ WebApp.enableClosingConfirmation() called');
+    
+    return WebApp;
+  } catch (error) {
+    console.error('❌ Error initializing Telegram Web App:', error);
+    throw error;
+  }
 };
 
 // Get Telegram user data
 export const getTelegramUser = () => {
+  console.log('🔍 Checking Telegram WebApp data...');
+  console.log('WebApp object:', WebApp);
+  console.log('WebApp.initDataUnsafe:', WebApp.initDataUnsafe);
+  console.log('WebApp.initDataUnsafe?.user:', WebApp.initDataUnsafe?.user);
+  console.log('WebApp.initData:', WebApp.initData);
+  console.log('WebApp.initDataHash:', WebApp.initDataHash);
+  
   if (WebApp.initDataUnsafe?.user) {
     const user = WebApp.initDataUnsafe.user;
-    console.log('Raw Telegram user data:', user);
+    console.log('✅ Raw Telegram user data found:', user);
     
     return {
       id: user.id,
@@ -33,6 +53,8 @@ export const getTelegramUser = () => {
       photoUrl: user.photo_url || null,
     };
   }
+  
+  console.log('❌ No Telegram user data found');
   return null;
 };
 
@@ -86,7 +108,16 @@ export const closeTelegramApp = () => {
 
 // Check if running in Telegram
 export const isTelegramWebApp = () => {
-  return typeof window !== 'undefined' && (window.Telegram?.WebApp || WebApp.initDataUnsafe?.user);
+  const hasTelegramWebApp = typeof window !== 'undefined' && window.Telegram?.WebApp;
+  const hasWebAppSDK = typeof WebApp !== 'undefined';
+  const hasUserData = WebApp?.initDataUnsafe?.user;
+  
+  console.log('🔍 Telegram WebApp Detection:');
+  console.log('  - window.Telegram?.WebApp:', !!hasTelegramWebApp);
+  console.log('  - WebApp SDK available:', hasWebAppSDK);
+  console.log('  - Has user data:', !!hasUserData);
+  
+  return hasTelegramWebApp || hasWebAppSDK || hasUserData;
 };
 
 // Get Telegram init data for validation
@@ -97,4 +128,48 @@ export const getTelegramInitData = () => {
 // Get Telegram init data hash for validation
 export const getTelegramInitDataHash = () => {
   return WebApp.initDataHash;
+};
+
+// Try multiple methods to get user data
+export const getTelegramUserFallback = () => {
+  console.log('🔄 Trying fallback methods to get Telegram user data...');
+  
+  // Method 1: WebApp.initDataUnsafe.user
+  if (WebApp.initDataUnsafe?.user) {
+    console.log('✅ Method 1 successful: WebApp.initDataUnsafe.user');
+    return WebApp.initDataUnsafe.user;
+  }
+  
+  // Method 2: window.Telegram.WebApp.initDataUnsafe.user
+  if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user) {
+    console.log('✅ Method 2 successful: window.Telegram.WebApp.initDataUnsafe.user');
+    return window.Telegram.WebApp.initDataUnsafe.user;
+  }
+  
+  // Method 3: Parse initData manually
+  if (WebApp.initData) {
+    try {
+      const urlParams = new URLSearchParams(WebApp.initData);
+      const userParam = urlParams.get('user');
+      if (userParam) {
+        const userData = JSON.parse(decodeURIComponent(userParam));
+        console.log('✅ Method 3 successful: Parsed from initData');
+        return userData;
+      }
+    } catch (error) {
+      console.log('❌ Method 3 failed: Could not parse initData');
+    }
+  }
+  
+  // Method 4: Check for Telegram WebApp global
+  if (typeof window !== 'undefined' && (window as any).TelegramWebApp) {
+    const userData = (window as any).TelegramWebApp.initDataUnsafe?.user;
+    if (userData) {
+      console.log('✅ Method 4 successful: window.TelegramWebApp');
+      return userData;
+    }
+  }
+  
+  console.log('❌ All fallback methods failed');
+  return null;
 };
