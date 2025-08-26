@@ -72,6 +72,52 @@
   body {
     @apply bg-background text-foreground font-inter;
   }
+
+  /* High-DPI display optimizations */
+  @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    html {
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+    
+    body {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font-smooth: never;
+    }
+    
+    /* Ensure crisp borders and shadows on high-DPI displays */
+    .border, .border-2, .border-4 {
+      border-width: 0.5px;
+    }
+    
+    /* Optimize button and input rendering */
+    button, input, select, textarea {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+    }
+  }
+
+  /* Mobile-specific optimizations */
+  @media (max-width: 768px) {
+    /* Ensure proper touch targets */
+    button, [role="button"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    /* Optimize modal positioning for mobile */
+    .fixed {
+      position: fixed;
+    }
+    
+    /* Ensure proper scrolling on mobile */
+    .overflow-y-auto {
+      -webkit-overflow-scrolling: touch;
+    }
+  }
 }
 
 @layer utilities {

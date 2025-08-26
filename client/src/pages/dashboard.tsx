@@ -40,6 +40,9 @@ export default function Dashboard() {
   const [walletAddress, setWalletAddress] = useState('');
   const [connectedSocialAccounts, setConnectedSocialAccounts] = useState<Map<string, any>>(new Map());
   
+  // Draft management state
+  const [drafts, setDrafts] = useState<any[]>([]);
+  
   // Wallet connection state
   const [isWalletConnecting, setIsWalletConnecting] = useState(false);
   const [walletConnected, setWalletConnected] = useState(false);
@@ -60,6 +63,30 @@ export default function Dashboard() {
     
     checkWalletStatus();
   }, []);
+
+  // Load drafts from localStorage
+  useEffect(() => {
+    const loadDrafts = () => {
+      const savedDrafts = localStorage.getItem(`campaign_drafts_${userId}`);
+      if (savedDrafts) {
+        try {
+          const parsedDrafts = JSON.parse(savedDrafts);
+          setDrafts(parsedDrafts);
+        } catch (error) {
+          console.error('Error loading drafts:', error);
+        }
+      }
+    };
+
+    loadDrafts();
+    
+    // Check for drafts periodically (for same-tab updates)
+    const interval = setInterval(loadDrafts, 1000);
+    
+    return () => {
+      clearInterval(interval);
+    };
+  }, [userId]);
 
   // Handle dropdown menu actions
   const handleProfileClick = () => {
@@ -154,6 +181,21 @@ export default function Dashboard() {
     return new Date(dateString).toLocaleDateString();
   };
 
+  // Draft management functions
+  const deleteDraft = (draftId: string) => {
+    const updatedDrafts = drafts.filter(draft => draft.id !== draftId);
+    setDrafts(updatedDrafts);
+    localStorage.setItem(`campaign_drafts_${userId}`, JSON.stringify(updatedDrafts));
+  };
+
+  const openDraftInModal = (draft: any) => {
+    // Store the draft data in localStorage temporarily so the modal can access it
+    localStorage.setItem(`selected_draft_${userId}`, JSON.stringify(draft));
+    // Also store the draft ID to know we're editing an existing draft
+    localStorage.setItem(`editing_draft_id_${userId}`, draft.id);
+    setShowCreateCampaign(true);
+  };
+
   return (
     <>
       {/* Main Content Area */}
@@ -213,11 +255,11 @@ export default function Dashboard() {
                     );
                   })()}
                   <div>
-                    <h1 className="text-2xl font-bold text-slate-900">
+                    <h1 className="text-xl font-bold text-slate-900">
                       Hi {nickname} 👋
                     </h1>
                     <div className="flex items-center space-x-2 mt-1">
-                      <p className="text-slate-600">Welcome back to Taskquer</p>
+                      <p className="text-sm text-slate-600">Welcome back to Taskquer</p>
                       {telegramUser?.photoUrl && (
                         <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
                           {useTelegramPhoto ? '📱' : '🎨'}
@@ -333,16 +375,18 @@ export default function Dashboard() {
                          </div>
                        </div>
                      </div>
+
+
                   </div>
                 </div>
               )}
 
                              {/* TON Wallet Section */}
                {activeSection === 'tonWallet' && (
-                 <div className="space-y-6 px-1 mt-2">
+                 <div className="space-y-6 px-1 -mt-4">
                   <div className="bg-gradient-to-r from-orange-400 to-red-500 p-6 rounded-lg text-white text-center">
-                    <h3 className="text-xl font-bold mb-2">TON Wallet Integration</h3>
-                    <p className="text-orange-100">Connect your TON wallet to manage your crypto assets</p>
+                    <h3 className="text-lg font-bold mb-2">TON Wallet Integration</h3>
+                    <p className="text-sm text-orange-100">Connect your TON wallet to manage your crypto assets</p>
                   </div>
                   
                   {/* Embedded Wallet Component */}
@@ -352,41 +396,155 @@ export default function Dashboard() {
 
                              {/* Browse Tasks Section */}
                {activeSection === 'browseTask' && (
-                 <div className="space-y-6 px-1 mt-2">
+                 <div className="space-y-6 px-1 -mt-4">
                   {/* Campaign Tasks Header */}
                   <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-lg p-6 text-center text-white shadow-lg">
-                    <h3 className="text-xl font-bold mb-2">CAMPAIGN TASKS</h3>
-                    <p className="text-blue-100">Discover and complete tasks to earn rewards</p>
+                    <h3 className="text-lg font-bold mb-2">CAMPAIGN TASKS</h3>
+                    <p className="text-sm text-blue-100">Discover and complete tasks to earn rewards</p>
                   </div>
                 
                   {/* Platform Filter */}
-                  <div className="flex items-center space-x-2 mb-4">
-                    <Filter className="w-4 h-4 text-slate-600" />
-                    <span className="text-sm font-medium text-slate-700">Filter by Platform:</span>
-                  </div>
-                  <div className="flex flex-wrap gap-2 mb-6">
+                  <div className="flex items-center space-x-3 mb-6">
+                    <Filter className="w-6 h-6 text-slate-600" />
+                    <span className="text-sm font-medium text-slate-600">Filter by Platform:</span>
+                    
+                    {/* All Platforms Button */}
                     <Button 
                       variant={platformFilter === "all" ? "default" : "outline"}
                       size="sm"
                       onClick={() => setPlatformFilter("all")}
+                      className="px-3 py-1 h-8 text-sm font-medium"
                     >
-                      All Platforms
+                      (All)
                     </Button>
-                    {["twitter", "tiktok", "facebook", "telegram"].map((platform) => (
+                    
+                    {/* Platform-specific buttons with icons only */}
+                    {[
+                      { key: "twitter", icon: "fab fa-twitter" },
+                      { key: "tiktok", icon: "fab fa-tiktok" },
+                      { key: "facebook", icon: "fab fa-facebook" },
+                      { key: "telegram", icon: "fab fa-telegram" }
+                    ].map(({ key, icon }) => (
                       <Button
-                        key={platform}
-                        variant={platformFilter === platform ? "default" : "outline"}
+                        key={key}
+                        variant={platformFilter === key ? "default" : "outline"}
                         size="sm"
-                        onClick={() => setPlatformFilter(platform)}
-                        className="capitalize"
+                        onClick={() => setPlatformFilter(key)}
+                        className="px-4 py-2 h-10"
+                        title={key.charAt(0).toUpperCase() + key.slice(1)}
                       >
-                        <i className={`${platformIcons[platform as keyof typeof platformIcons]} mr-2`} />
-                        {platform}
+                        <i className={`${icon} text-lg`} />
                       </Button>
                     ))}
                   </div>
 
-                                     {/* Task Cards */}
+                  {/* Active Campaigns Container */}
+                  <div className="mb-6">
+                    <Card>
+                      <CardHeader>
+                                                 <CardTitle className="text-base font-semibold flex items-center gap-2">
+                           🚀 Active Campaigns
+                         </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {filteredCampaigns.filter((campaign: Campaign) => campaign.status === 'active').map((campaign: Campaign) => (
+                            <div key={campaign.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                              <div className="flex-1 min-w-0">
+                                <h5 className="text-sm font-medium text-gray-900 truncate">
+                                  {campaign.title || "Untitled Campaign"}
+                                </h5>
+                                <p className="text-xs text-gray-600 truncate mt-1">
+                                  Platform: {campaign.platform} • Slots: {campaign.availableSlots} • Reward: {campaign.rewardAmount} USDT
+                                </p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Created: {new Date(campaign.createdAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <div className="flex items-center space-x-2 ml-3">
+                                <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">
+                                  Active
+                                </Badge>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setSelectedTask(campaign)}
+                                  className="text-xs px-3 py-1 h-7"
+                                >
+                                  Start Task
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                          {filteredCampaigns.filter((campaign: Campaign) => campaign.status === 'active').length === 0 && (
+                            <div className="text-center text-gray-500 py-8">
+                              <p>No active campaigns available</p>
+                              <p className="text-sm">Check back later for new opportunities</p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Campaign Drafts Container */}
+                  <div className="mb-6">
+                    <Card>
+                      <CardHeader>
+                                                 <CardTitle className="text-base font-semibold flex items-center gap-2">
+                           📝 Campaign Drafts
+                         </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {drafts.length > 0 ? (
+                          <div className="space-y-3">
+                            {drafts.map((draft) => (
+                              <div key={draft.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                <div className="flex-1 min-w-0">
+                                  <h5 className="text-sm font-medium text-gray-900 truncate">
+                                    {draft.title || "Untitled Draft"}
+                                  </h5>
+                                  <p className="text-xs text-gray-600 truncate">
+                                    {draft.platform && `Platform: ${draft.platform}`}
+                                    {draft.platform && draft.description && " • "}
+                                    {draft.description && `${draft.description.substring(0, 50)}${draft.description.length > 50 ? '...' : ''}`}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Last updated: {new Date(draft.updatedAt).toLocaleDateString()}
+                                  </p>
+                                </div>
+                                <div className="flex items-center space-x-2 ml-3">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => openDraftInModal(draft)}
+                                    className="text-xs px-2 py-1 h-7"
+                                  >
+                                    Edit
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => deleteDraft(draft.id)}
+                                    className="text-xs px-2 py-1 h-7 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  >
+                                    Delete
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center text-gray-500 py-8">
+                            <p>No saved drafts yet</p>
+                            <p className="text-sm">Create a campaign and save it as a draft to see it here</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Task Cards */}
                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                      {filteredCampaigns.map((campaign: Campaign) => (
                        <TaskCard
@@ -401,11 +559,11 @@ export default function Dashboard() {
 
                              {/* Transactions & Withdrawal Section */}
                {activeSection === 'transactionWithdrawal' && (
-                 <div className="space-y-6 px-1 mt-2">
+                 <div className="space-y-6 px-1 -mt-4">
                   {/* Withdraw Earnings Header */}
                   <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 rounded-lg p-6 text-center text-white shadow-lg">
-                    <h3 className="text-xl font-bold mb-2">Withdraw Earnings</h3>
-                    <p className="text-green-100">Convert your USDT rewards to your TON wallet</p>
+                    <h3 className="text-lg font-bold mb-2">Withdraw Earnings</h3>
+                    <p className="text-sm text-green-100">Convert your USDT rewards to your TON wallet</p>
                   </div>
                   
                                      {/* Withdrawal Form */}
@@ -413,7 +571,7 @@ export default function Dashboard() {
                   
                   {/* Transaction History */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Transaction History</h3>
+                    <h3 className="text-base font-semibold">Transaction History</h3>
                     <div className="space-y-3">
                       {transactions.map((transaction: Transaction) => (
                         <div key={transaction.id} className="flex items-center justify-between p-4 bg-white rounded-lg border">
@@ -460,11 +618,11 @@ export default function Dashboard() {
 
                                             {/* Profile & Settings Section */}
                {activeSection === 'profileSettings' && (
-                 <div className="space-y-6 px-1 mt-2">
+                 <div className="space-y-6 px-1 -mt-4">
                    {/* User Profile */}
                    <Card>
                      <CardHeader className="relative pb-1">
-                       <CardTitle>User Profile</CardTitle>
+                       <CardTitle className="text-base">User Profile</CardTitle>
                        {/* Profile Photo Placeholder - Top Right Corner */}
                        <div className="absolute top-4 right-4 w-16 h-16 bg-gray-100 rounded-full border-4 border-blue-100 flex items-center justify-center">
                          {telegramUser?.photoUrl ? (
@@ -482,7 +640,7 @@ export default function Dashboard() {
                       <div className="flex items-center space-x-4">
                         <div className="flex-1">
                           <div className="space-y-1">
-                            <h3 className="text-lg font-semibold">
+                            <h3 className="text-base font-semibold">
                               {telegramUser?.firstName} {telegramUser?.lastName}
                             </h3>
                             <p className="text-sm text-muted-foreground">
@@ -602,7 +760,7 @@ export default function Dashboard() {
                              </div>
                              <div>
                                <p className="text-sm text-blue-600">Total Tasks Completed</p>
-                               <p className="text-xl font-bold text-blue-900">{user?.completedTasks || 0}</p>
+                               <p className="text-lg font-bold text-blue-900">{user?.completedTasks || 0}</p>
                              </div>
                            </div>
                          </div>
@@ -614,7 +772,7 @@ export default function Dashboard() {
                              </div>
                              <div>
                                <p className="text-sm text-orange-600">Ongoing<br />Tasks</p>
-                               <p className="text-xl font-bold text-orange-900">0</p>
+                               <p className="text-lg font-bold text-orange-900">0</p>
                              </div>
                            </div>
                          </div>
@@ -626,7 +784,7 @@ export default function Dashboard() {
                              </div>
                              <div>
                                <p className="text-sm text-green-600">Campaigns Created</p>
-                               <p className="text-xl font-bold text-green-900">0</p>
+                               <p className="text-lg font-bold text-green-900">0</p>
                              </div>
                            </div>
                          </div>
@@ -638,7 +796,7 @@ export default function Dashboard() {
                              </div>
                              <div>
                                <p className="text-sm text-purple-600">Ongoing Campaigns</p>
-                               <p className="text-xl font-bold text-purple-900">0</p>
+                               <p className="text-lg font-bold text-purple-900">0</p>
                              </div>
                            </div>
                          </div>
@@ -648,7 +806,7 @@ export default function Dashboard() {
                   
                   <Card>
                     <CardHeader>
-                      <CardTitle>Settings</CardTitle>
+                      <CardTitle className="text-base">Settings</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="space-y-3">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CampaignForm from "./CampaignForm";
 
@@ -11,6 +11,7 @@ interface CreateCampaignModalProps {
 export default function CreateCampaignModal({ isOpen, onClose, userId }: CreateCampaignModalProps) {
   const [showWarning, setShowWarning] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [selectedDraft, setSelectedDraft] = useState<any>(null);
   
   const handleCloseAttempt = () => {
     // Only show warning if there are unsaved changes
@@ -34,6 +35,14 @@ export default function CreateCampaignModal({ isOpen, onClose, userId }: CreateC
     setShowWarning(false);
     console.log('After setShowWarning(false)');
   };
+
+  // Reset draft when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedDraft(null);
+      setHasUnsavedChanges(false);
+    }
+  }, [isOpen]);
   
   return (
     <>
@@ -45,18 +54,19 @@ export default function CreateCampaignModal({ isOpen, onClose, userId }: CreateC
           }
         }}
       >
-        <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto scrollbar-hide rounded-lg">
+        <DialogContent className="max-w-[95vw] w-full max-h-[90vh] overflow-y-auto scrollbar-hide rounded-lg p-4 sm:max-w-[600px] sm:p-6">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl">
+            <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
               🎯 Create New Campaign
             </DialogTitle>
           </DialogHeader>
           
-          <div className="mt-4">
+          <div className="mt-2 sm:mt-4">
             <CampaignForm 
               userId={userId} 
               onClose={onClose}
               onFormChange={setHasUnsavedChanges}
+              selectedDraft={selectedDraft}
             />
           </div>
         </DialogContent>

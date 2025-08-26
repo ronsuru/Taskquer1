@@ -41,6 +41,35 @@ export default function CampaignForm({ userId, onClose, onFormChange }: Campaign
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Load selected draft when component mounts
+  useEffect(() => {
+    const selectedDraft = localStorage.getItem(`selected_draft_${userId}`);
+    if (selectedDraft) {
+      try {
+        const draft = JSON.parse(selectedDraft);
+        setFormData({
+          title: draft.title || "",
+          description: draft.description || "",
+          platform: draft.platform || "",
+          taskType: draft.taskType || "",
+          totalSlots: draft.totalSlots || 5,
+          rewardAmount: draft.rewardAmount || "0.015",
+          proofType: draft.proofType || "image",
+        });
+        
+        // Clean up the temporary draft data
+        localStorage.removeItem(`selected_draft_${userId}`);
+        
+        toast({
+          title: "Draft Loaded",
+          description: "Your draft has been loaded into the form.",
+        });
+      } catch (error) {
+        console.error('Error loading draft:', error);
+      }
+    }
+  }, [userId, toast]);
+
   const createCampaignMutation = useMutation({
     mutationFn: async (data: InsertCampaign) => {
       const response = await apiRequest("POST", "/api/campaigns", data);
@@ -89,6 +118,100 @@ export default function CampaignForm({ userId, onClose, onFormChange }: Campaign
   };
 
   const costs = calculateCosts();
+
+  const saveDraft = () => {
+    console.log('saveDraft called, toast function:', toast); // Debug log
+    
+    if (!formData.title && !formData.description && !formData.platform) {
+      console.log('No content, showing error toast'); // Debug log
+      alert('No content to save'); // Temporary test
+      toast({
+        title: "No Content",
+        description: "Please add some content before saving as draft",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Check if we're editing an existing draft
+      const editingDraftId = localStorage.getItem(`editing_draft_id_${userId}`);
+      console.log('Editing draft ID:', editingDraftId); // Debug log
+      
+      if (editingDraftId) {
+        // We're editing an existing draft - update it
+        const existingDrafts = localStorage.getItem(`campaign_drafts_${userId}`);
+        const drafts = existingDrafts ? JSON.parse(existingDrafts) : [];
+        
+        // Find the draft to update
+        const draftIndex = drafts.findIndex((draft: any) => draft.id === editingDraftId);
+        
+        if (draftIndex !== -1) {
+          // Update the existing draft
+          drafts[draftIndex] = {
+            ...drafts[draftIndex], // Keep existing data like createdAt
+            ...formData, // Overwrite with new form data
+            updatedAt: new Date(), // Update the timestamp
+          };
+          
+          // Save updated drafts
+          localStorage.setItem(`campaign_drafts_${userId}`, JSON.stringify(drafts));
+          
+          // Clean up the editing flag
+          localStorage.removeItem(`editing_draft_id_${userId}`);
+          
+          console.log('Draft updated, showing toast'); // Debug log
+          alert('Draft updated successfully!'); // Temporary test
+          toast({
+            title: "Draft Updated",
+            description: "Your campaign draft has been updated successfully.",
+          });
+          
+          // Close modal after updating draft
+          if (onClose) {
+            onClose();
+          }
+        }
+      } else {
+        // We're creating a new draft
+        const newDraft = {
+          id: `draft_${Date.now()}`,
+          ...formData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        // Get existing drafts
+        const existingDrafts = localStorage.getItem(`campaign_drafts_${userId}`);
+        const drafts = existingDrafts ? JSON.parse(existingDrafts) : [];
+        
+        // Add new draft
+        drafts.push(newDraft);
+        
+        // Save to localStorage
+        localStorage.setItem(`campaign_drafts_${userId}`, JSON.stringify(drafts));
+        
+        console.log('Draft saved, showing toast'); // Debug log
+        alert('Draft saved successfully!'); // Temporary test
+        toast({
+          title: "Draft Saved",
+          description: "Your campaign draft has been saved successfully.",
+        });
+        
+        // Close modal after saving draft
+        if (onClose) {
+          onClose();
+        }
+      }
+    } catch (error) {
+      console.error('Error saving draft:', error); // Debug log
+      toast({
+        title: "Error",
+        description: "Failed to save draft",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -276,7 +399,12 @@ export default function CampaignForm({ userId, onClose, onFormChange }: Campaign
           </div>
 
           <div className="flex space-x-4 pb-2">
-            <Button type="button" variant="outline" className="flex-1 text-sm h-10">
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="flex-1 text-sm h-10"
+              onClick={saveDraft}
+            >
               Save Draft
             </Button>
             <Button 
