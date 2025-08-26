@@ -17,35 +17,35 @@ class SocialMediaService {
   }
 
   // Facebook Connection
-  async connectFacebook(): Promise<void> {
+  connectFacebook(): void {
     // Direct link to Facebook login - users authenticate with their own accounts
     const facebookUrl = 'https://www.facebook.com/login';
     this.openPlatformWindow(facebookUrl, 'facebook');
   }
 
   // Twitter Connection
-  async connectTwitter(): Promise<void> {
+  connectTwitter(): void {
     // Direct link to Twitter login - users authenticate with their own accounts
     const twitterUrl = 'https://twitter.com/i/flow/login';
     this.openPlatformWindow(twitterUrl, 'twitter');
   }
 
   // YouTube Connection
-  async connectYouTube(): Promise<void> {
+  connectYouTube(): void {
     // Direct link to YouTube login - users authenticate with their own accounts
     const youtubeUrl = 'https://accounts.google.com/signin/v2/identifier?service=youtube';
     this.openPlatformWindow(youtubeUrl, 'youtube');
   }
 
   // Discord Connection
-  async connectDiscord(): Promise<void> {
+  connectDiscord(): void {
     // Direct link to Discord login - users authenticate with their own accounts
     const discordUrl = 'https://discord.com/login';
     this.openPlatformWindow(discordUrl, 'discord');
   }
 
   // TikTok Connection
-  async connectTikTok(): Promise<void> {
+  connectTikTok(): void {
     // Direct link to TikTok login - users authenticate with their own accounts
     const tiktokUrl = 'https://www.tiktok.com/login';
     this.openPlatformWindow(tiktokUrl, 'tiktok');
@@ -53,16 +53,22 @@ class SocialMediaService {
 
   // Open platform window for user authentication
   private openPlatformWindow(platformUrl: string, platform: string): void {
+    console.log(`Opening platform window for ${platform}:`, platformUrl);
+    console.log('Telegram WebApp available:', !!window.Telegram?.WebApp);
+    
     // For Telegram Mini App, we'll use the Telegram WebApp's openTelegramLink method
     if (window.Telegram?.WebApp) {
+      console.log('Using Telegram WebApp for', platform);
       // Open in Telegram's built-in browser
       window.Telegram.WebApp.openTelegramLink(platformUrl);
       
       // Simulate successful connection after a delay (for demo purposes)
       setTimeout(() => {
+        console.log(`Simulating connection for ${platform}`);
         this.simulateConnection(platform);
       }, 2000);
     } else {
+      console.log('Using popup window for', platform);
       // Fallback to popup window for regular web browsers
       const popup = window.open(
         platformUrl,
@@ -85,6 +91,8 @@ class SocialMediaService {
   // Simulate successful connection (for demo purposes)
   private simulateConnection(platform: string): void {
     try {
+      console.log(`Simulating connection for ${platform}`);
+      
       // Create a mock connected account
       const mockAccount: SocialMediaAccount = {
         platform,
@@ -95,12 +103,16 @@ class SocialMediaService {
         avatarUrl: `https://via.placeholder.com/40/40?text=${platform.charAt(0).toUpperCase()}`
       };
 
+      console.log('Created mock account:', mockAccount);
       this.connectedAccounts.set(platform, mockAccount);
       
       // Emit an event that the dashboard can listen to
-      window.dispatchEvent(new CustomEvent('socialMediaConnected', {
+      const event = new CustomEvent('socialMediaConnected', {
         detail: { platform, account: mockAccount }
-      }));
+      });
+      
+      console.log('Dispatching event:', event);
+      window.dispatchEvent(event);
 
     } catch (error) {
       console.error(`Failed to simulate ${platform} connection:`, error);
@@ -108,7 +120,7 @@ class SocialMediaService {
   }
 
   // Disconnect social media account
-  async disconnectAccount(platform: string): Promise<void> {
+  disconnectAccount(platform: string): void {
     try {
       // This would typically call your backend to revoke the OAuth token
       this.connectedAccounts.delete(platform);

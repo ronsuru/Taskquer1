@@ -157,23 +157,23 @@ export default function Dashboard() {
     }
   };
 
-  const handleSocialMediaConnect = async (platform: string) => {
+  const handleSocialMediaConnect = (platform: string) => {
     try {
       switch (platform) {
         case 'facebook':
-          await socialMediaService.connectFacebook();
+          socialMediaService.connectFacebook();
           break;
         case 'twitter':
-          await socialMediaService.connectTwitter();
+          socialMediaService.connectTwitter();
           break;
         case 'youtube':
-          await socialMediaService.connectYouTube();
+          socialMediaService.connectYouTube();
           break;
         case 'discord':
-          await socialMediaService.connectDiscord();
+          socialMediaService.connectDiscord();
           break;
         case 'tiktok':
-          await socialMediaService.connectTikTok();
+          socialMediaService.connectTikTok();
           break;
         default:
           console.error(`Unknown platform: ${platform}`);
@@ -184,9 +184,9 @@ export default function Dashboard() {
     }
   };
 
-  const handleSocialMediaDisconnect = async (platform: string) => {
+  const handleSocialMediaDisconnect = (platform: string) => {
     try {
-      await socialMediaService.disconnectAccount(platform);
+      socialMediaService.disconnectAccount(platform);
       setConnectedSocialAccounts(prev => {
         const newMap = new Map(prev);
         newMap.delete(platform);
