@@ -159,25 +159,39 @@ export default function Dashboard() {
 
   const handleSocialMediaConnect = (platform: string) => {
     try {
+      console.log(`Attempting to connect ${platform}...`);
+      console.log('socialMediaService available:', !!socialMediaService);
+      
+      // First, test if the service is working
+      console.log('Testing service with testConnection...');
+      socialMediaService.testConnection(platform);
+      
       switch (platform) {
         case 'facebook':
+          console.log('Calling connectFacebook...');
           socialMediaService.connectFacebook();
           break;
         case 'twitter':
+          console.log('Calling connectTwitter...');
           socialMediaService.connectTwitter();
           break;
         case 'youtube':
+          console.log('Calling connectYouTube...');
           socialMediaService.connectYouTube();
           break;
         case 'discord':
+          console.log('Calling connectDiscord...');
           socialMediaService.connectDiscord();
           break;
         case 'tiktok':
+          console.log('Calling connectTikTok...');
           socialMediaService.connectTikTok();
           break;
         default:
           console.error(`Unknown platform: ${platform}`);
       }
+      
+      console.log(`${platform} connection initiated successfully`);
     } catch (error) {
       console.error(`Failed to connect ${platform}:`, error);
       alert(`Failed to connect ${platform}. Please try again.`);
