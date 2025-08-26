@@ -461,74 +461,34 @@ export default function Dashboard() {
                                             {/* Profile & Settings Section */}
                {activeSection === 'profileSettings' && (
                  <div className="space-y-6 px-1 mt-2">
-                   {/* Task & Campaign Statistics */}
-                   <div className="grid grid-cols-2 gap-4">
-                     <div className="bg-blue-50 p-4 rounded-lg">
-                       <div className="flex items-center space-x-3">
-                         <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                           <CheckCircle className="w-5 h-5 text-blue-600" />
-                         </div>
-                         <div>
-                           <p className="text-sm text-blue-600">Total Tasks Completed</p>
-                           <p className="text-xl font-bold text-blue-900">{user?.completedTasks || 0}</p>
-                         </div>
-                       </div>
-                     </div>
-                     
-                     <div className="bg-orange-50 p-4 rounded-lg">
-                       <div className="flex items-center space-x-3">
-                         <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                           <Clock className="w-5 h-5 text-orange-600" />
-                         </div>
-                         <div>
-                           <p className="text-sm text-orange-600">Ongoing<br />Tasks</p>
-                           <p className="text-xl font-bold text-orange-900">0</p>
-                         </div>
-                       </div>
-                     </div>
-                     
-                     <div className="bg-green-50 p-4 rounded-lg">
-                       <div className="flex items-center space-x-3">
-                         <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                           <Plus className="w-5 h-5 text-green-600" />
-                         </div>
-                         <div>
-                           <p className="text-sm text-green-600">Campaigns Created</p>
-                           <p className="text-xl font-bold text-green-900">0</p>
-                         </div>
-                       </div>
-                     </div>
-                     
-                     <div className="bg-purple-50 p-4 rounded-lg">
-                       <div className="flex items-center space-x-3">
-                         <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                           <Trophy className="w-5 h-5 text-purple-600" />
-                         </div>
-                         <div>
-                           <p className="text-sm text-purple-600">Ongoing Campaigns</p>
-                           <p className="text-xl font-bold text-purple-900">0</p>
-                         </div>
-                       </div>
-                     </div>
-                   </div>
-                   
+                   {/* User Profile */}
                    <Card>
-                     <CardHeader>
+                     <CardHeader className="relative pb-1">
                        <CardTitle>User Profile</CardTitle>
+                       {/* Profile Photo Placeholder - Top Right Corner */}
+                       <div className="absolute top-4 right-4 w-16 h-16 bg-gray-100 rounded-full border-4 border-blue-100 flex items-center justify-center">
+                         {telegramUser?.photoUrl ? (
+                           <img 
+                             src={telegramUser.photoUrl} 
+                             alt="Profile" 
+                             className="w-full h-full rounded-full object-cover"
+                           />
+                         ) : (
+                           <User className="w-8 h-8 text-gray-400" />
+                         )}
+                       </div>
                      </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="pt-1 space-y-4">
                       <div className="flex items-center space-x-4">
-                        {telegramUser?.photoUrl && (
-                          <img 
-                            src={telegramUser.photoUrl} 
-                            alt="Profile" 
-                            className="w-16 h-16 rounded-full border-4 border-blue-100"
-                          />
-                        )}
                         <div className="flex-1">
-                          <h3 className="text-lg font-semibold">
-                            @{telegramUser?.username || 'No username'}
-                          </h3>
+                          <div className="space-y-1">
+                            <h3 className="text-lg font-semibold">
+                              {telegramUser?.firstName} {telegramUser?.lastName}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              @{telegramUser?.username || 'No username'}
+                            </p>
+                          </div>
                           {telegramUser?.isPremium && (
                             <Badge variant="premium" className="mt-1">
                               <Crown className="w-3 h-3 mr-1" />
@@ -630,6 +590,61 @@ export default function Dashboard() {
                       </div>
                     </CardContent>
                   </Card>
+
+                   {/* Task & Campaign Statistics */}
+                   <Card>
+                     <CardContent className="p-6">
+                       <div className="grid grid-cols-2 gap-4">
+                         <div className="bg-blue-50 p-4 rounded-lg">
+                           <div className="flex items-center space-x-3">
+                             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                               <CheckCircle className="w-5 h-5 text-blue-600" />
+                             </div>
+                             <div>
+                               <p className="text-sm text-blue-600">Total Tasks Completed</p>
+                               <p className="text-xl font-bold text-blue-900">{user?.completedTasks || 0}</p>
+                             </div>
+                           </div>
+                         </div>
+                         
+                         <div className="bg-orange-50 p-4 rounded-lg">
+                           <div className="flex items-center space-x-3">
+                             <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                               <Clock className="w-5 h-5 text-orange-600" />
+                             </div>
+                             <div>
+                               <p className="text-sm text-orange-600">Ongoing<br />Tasks</p>
+                               <p className="text-xl font-bold text-orange-900">0</p>
+                             </div>
+                           </div>
+                         </div>
+                         
+                         <div className="bg-green-50 p-4 rounded-lg">
+                           <div className="flex items-center space-x-3">
+                             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                               <Plus className="w-5 h-5 text-green-600" />
+                             </div>
+                             <div>
+                               <p className="text-sm text-green-600">Campaigns Created</p>
+                               <p className="text-xl font-bold text-green-900">0</p>
+                             </div>
+                           </div>
+                         </div>
+                         
+                         <div className="bg-purple-50 p-4 rounded-lg">
+                           <div className="flex items-center space-x-3">
+                             <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                               <Trophy className="w-5 h-5 text-purple-600" />
+                             </div>
+                             <div>
+                               <p className="text-sm text-purple-600">Ongoing Campaigns</p>
+                               <p className="text-xl font-bold text-purple-900">0</p>
+                             </div>
+                           </div>
+                         </div>
+                       </div>
+                     </CardContent>
+                   </Card>
                   
                   <Card>
                     <CardHeader>

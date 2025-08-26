@@ -48,12 +48,14 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
               />
             )}
             <div className="flex-1">
-              <h3 className="text-lg font-semibold">
-                {user.firstName} {user.lastName}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                @{user.username || 'No username'}
-              </p>
+              <div className="space-y-1">
+                <h3 className="text-lg font-semibold">
+                  {user.firstName} {user.lastName}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  @{user.username || 'No username'}
+                </p>
+              </div>
               {user.isPremium && (
                 <Badge variant="premium" className="mt-1">
                   <Crown className="w-3 h-3 mr-1" />
