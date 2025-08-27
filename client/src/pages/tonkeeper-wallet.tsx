@@ -49,6 +49,8 @@ const TonkeeperWallet: React.FC = () => {
   });
 
   const [isConnecting, setIsConnecting] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
 
   // Check if TON Connect is available
   const isTONConnectAvailable = () => {
@@ -92,15 +94,31 @@ const TonkeeperWallet: React.FC = () => {
       
       // Handle jsBridgekey errors specifically
       try {
-        if (handleBridgeError(error)) {
+        if (handleBridgeError(error) && retryCount < MAX_RETRIES) {
+          setRetryCount(prev => prev + 1);
           toast({
             title: "Retrying Connection",
-            description: "Bridge error detected, retrying...",
+            description: `Bridge error detected, retrying... (${retryCount + 1}/${MAX_RETRIES})`,
           });
           // Try to connect again after a short delay
           setTimeout(() => {
             connectWallet();
-          }, 1000);
+          }, 2000); // Increased delay to 2 seconds
+          return;
+        } else if (retryCount >= MAX_RETRIES) {
+          // Max retries reached, show final error
+          setRetryCount(0); // Reset for next attempt
+          setWalletData(prev => ({
+            ...prev,
+            isLoading: false,
+            error: 'Maximum retry attempts reached. Please try again later.'
+          }));
+          
+          toast({
+            title: "Connection Failed",
+            description: "Maximum retry attempts reached. Please try again later.",
+            variant: "destructive"
+          });
           return;
         }
       } catch (bridgeError) {
@@ -227,22 +245,23 @@ const TonkeeperWallet: React.FC = () => {
         const address = account.address;
         console.log('Wallet connected:', address);
         
-        // Fetch initial balances
-        getAllTokenBalances(address).then(tokens => {
-          setWalletData({
-            address,
-            balance: tokens.TON.balance,
-            usdtBalance: tokens.USDT.balance,
-            isConnected: true,
-            isLoading: false,
-            error: null
-          });
-          
-          toast({
-            title: "Wallet Connected!",
-            description: `Successfully connected to ${address.substring(0, 8)}...`,
-          });
-        });
+                 // Fetch initial balances
+         getAllTokenBalances(address).then(tokens => {
+           setRetryCount(0); // Reset retry count on successful connection
+           setWalletData({
+             address,
+             balance: tokens.TON.balance,
+             usdtBalance: tokens.USDT.balance,
+             isConnected: true,
+             isLoading: false,
+             error: null
+           });
+           
+           toast({
+             title: "Wallet Connected!",
+             description: `Successfully connected to ${address.substring(0, 8)}...`,
+           });
+         });
       } else {
         // Wallet disconnected
         console.log('Wallet disconnected');
@@ -469,17 +488,33 @@ const TonkeeperWallet: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Error Display */}
-          {walletData.error && (
-            <Card className="border-red-200">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2 text-red-600">
-                  <AlertCircle className="h-4 w-4" />
-                  <span className="text-sm">{walletData.error}</span>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                     {/* Error Display */}
+           {walletData.error && (
+             <Card className="border-red-200">
+               <CardContent className="pt-6">
+                 <div className="space-y-3">
+                   <div className="flex items-center gap-2 text-red-600">
+                     <AlertCircle className="h-4 w-4" />
+                     <span className="text-sm">{walletData.error}</span>
+                   </div>
+                   {walletData.error.includes('Maximum retry attempts reached') && (
+                     <Button
+                       onClick={() => {
+                         setRetryCount(0);
+                         setWalletData(prev => ({ ...prev, error: null }));
+                         connectWallet();
+                       }}
+                       variant="outline"
+                       size="sm"
+                       className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                     >
+                       Try Again
+                     </Button>
+                   )}
+                 </div>
+               </CardContent>
+             </Card>
+           )}
         </div>
       )}
     </div>
