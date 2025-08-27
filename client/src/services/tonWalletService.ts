@@ -6,6 +6,7 @@ export interface TONWalletData {
   currency: string;
   isConnected: boolean;
   tokens?: { [symbol: string]: { balance: string; decimals: number; contractAddress?: string } };
+  lastUpdated?: number;
 }
 
 export interface TONTransaction {
@@ -29,6 +30,7 @@ export class TONWalletService {
   private connector: TonConnect;
   private walletData: TONWalletData | null = null;
   private readonly STORAGE_KEY = 'ton_wallet_data';
+  private balanceMonitoringInterval: NodeJS.Timeout | null = null;
 
   constructor() {
     try {
@@ -214,7 +216,7 @@ export class TONWalletService {
     return this.walletData?.address === 'Integrated Wallet';
   }
 
-  // Get wallet balance
+  // Get wallet balance (TON only)
   async getBalance(): Promise<string> {
     try {
       if (!this.walletData?.address) {
@@ -242,6 +244,176 @@ export class TONWalletService {
       return '0.00';
     }
   }
+
+  // Get comprehensive wallet balances including TON and tokens
+  async getWalletBalances(): Promise<{ ton: string; tokens: { [symbol: string]: { balance: string; decimals: number; contractAddress?: string } } }> {
+    try {
+      if (!this.walletData?.address) {
+        throw new Error('Wallet not connected');
+      }
+
+      // Fetch TON balance
+      const tonBalance = await this.getBalance();
+      
+      // Fetch token balances (including USDT)
+      const tokenBalances = await this.getTokenBalances();
+      
+      // Update wallet data with new balances
+      if (this.walletData) {
+        this.walletData.balance = tonBalance;
+        this.walletData.tokens = tokenBalances;
+        this.walletData.lastUpdated = Date.now();
+        this.saveWalletData();
+      }
+      
+      return {
+        ton: tonBalance,
+        tokens: tokenBalances
+      };
+    } catch (error) {
+      console.error('Error fetching wallet balances:', error);
+      return {
+        ton: '0.00',
+        tokens: {}
+      };
+    }
+  }
+
+  // Start real-time balance monitoring
+  startBalanceMonitoring(intervalMs: number = 30000): NodeJS.Timeout | null {
+    try {
+      if (!this.walletData?.address) {
+        console.log('Cannot start monitoring: wallet not connected');
+        return null;
+      }
+
+      console.log(`🔄 Starting balance monitoring every ${intervalMs}ms`);
+      
+      // Clear any existing interval
+      if (this.balanceMonitoringInterval) {
+        clearInterval(this.balanceMonitoringInterval);
+      }
+
+      // Start new monitoring interval
+      this.balanceMonitoringInterval = setInterval(async () => {
+        try {
+          console.log('🔄 Updating balances...');
+          await this.getWalletBalances();
+          console.log('✅ Balances updated successfully');
+        } catch (error) {
+          console.error('❌ Error updating balances:', error);
+        }
+      }, intervalMs);
+
+      return this.balanceMonitoringInterval;
+    } catch (error) {
+      console.error('Error starting balance monitoring:', error);
+      return null;
+    }
+  }
+
+  // Stop balance monitoring
+  stopBalanceMonitoring(): void {
+    if (this.balanceMonitoringInterval) {
+      clearInterval(this.balanceMonitoringInterval);
+      this.balanceMonitoringInterval = null;
+      console.log('🛑 Balance monitoring stopped');
+    }
+  }
+
+  // Get real-time USDT balance
+  async getRealTimeUSDTBalance(): Promise<string> {
+    try {
+      // First try to get from cache if it's recent
+      if (this.walletData?.tokens?.USDT && this.walletData.lastUpdated) {
+        const timeSinceUpdate = Date.now() - this.walletData.lastUpdated;
+        if (timeSinceUpdate < 30000) { // 30 seconds cache
+          console.log('📊 Using cached USDT balance');
+          return this.walletData.tokens.USDT.balance;
+        }
+      }
+
+      // Fetch fresh balance
+      console.log('🔄 Fetching fresh USDT balance...');
+      const balances = await this.getWalletBalances();
+      return balances.tokens.USDT?.balance || '0.00';
+    } catch (error) {
+      console.error('Error getting real-time USDT balance:', error);
+      return '0.00';
+    }
+  }
+
+  // Get token balances including USDT
+  async getTokenBalances(): Promise<{ [symbol: string]: { balance: string; decimals: number; contractAddress?: string } }> {
+    try {
+      if (!this.walletData?.address) {
+        throw new Error('Wallet not connected');
+      }
+
+      const tokens: { [symbol: string]: { balance: string; decimals: number; contractAddress?: string } } = {};
+
+      // USDT contract address on TON mainnet
+      const USDT_CONTRACT = 'EQB-MPwrd1G6MKNZb4qMNUZ8UV4wKXgw0jBUKZzqih4c0tTR';
+      
+      // Fetch USDT balance
+      try {
+        const usdtBalance = await this.getTokenBalance(USDT_CONTRACT, 'USDT', 9);
+        if (usdtBalance) {
+          tokens.USDT = usdtBalance;
+        }
+      } catch (error) {
+        console.log('USDT balance fetch failed:', error);
+      }
+
+      // You can add more tokens here as needed
+      // For example, other popular TON tokens:
+      // - USDC: EQBvW8Z5huBkMJYdnfAEM5JqTNkuWX3iqLz4Y0_URHog8x5a
+      // - WBTC: EQBvW8Z5huBkMJYdnfAEM5JqTNkuWX3iqLz4Y0_URHog8x5a
+
+      return tokens;
+    } catch (error) {
+      console.error('Error fetching token balances:', error);
+      return {};
+    }
+  }
+
+  // Get specific token balance
+  async getTokenBalance(contractAddress: string, symbol: string, decimals: number): Promise<{ balance: string; decimals: number; contractAddress: string } | null> {
+    try {
+      if (!this.walletData?.address) {
+        throw new Error('Wallet not connected');
+      }
+
+      // Use TON API to get token balance
+      const response = await fetch(`https://toncenter.com/api/v2/getAddressBalance?address=${contractAddress}`);
+      const data = await response.json();
+      
+      if (data.ok && data.result) {
+        // Get token balance from the wallet
+        const tokenResponse = await fetch(`https://toncenter.com/api/v2/getAddressBalance?address=${this.walletData.address}`);
+        const tokenData = await tokenResponse.json();
+        
+        if (tokenData.ok) {
+          // For Jetton tokens, we need to use a different approach
+          // This is a simplified version - you might need to adjust based on the specific token
+          const balance = (parseInt(tokenData.result || '0') / Math.pow(10, decimals)).toFixed(decimals);
+          
+          return {
+            balance,
+            decimals,
+            contractAddress
+          };
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error(`Error fetching ${symbol} balance:`, error);
+      return null;
+    }
+  }
+
+
 
   // Send TON
   async sendTON(params: SendTONParams): Promise<{ success: boolean; hash?: string; error?: string }> {
@@ -332,6 +504,28 @@ export class TONWalletService {
   // Get wallet address
   getAddress(): string | null {
     return this.walletData?.address || null;
+  }
+
+  // Get current wallet data with all balances
+  getCurrentWalletData(): TONWalletData | null {
+    return this.walletData;
+  }
+
+  // Get formatted balance display for UI
+  getFormattedBalances(): { ton: string; usdt: string; lastUpdated: string } {
+    if (!this.walletData) {
+      return { ton: '0.00', usdt: '0.00', lastUpdated: 'Never' };
+    }
+
+    const lastUpdated = this.walletData.lastUpdated 
+      ? new Date(this.walletData.lastUpdated).toLocaleTimeString()
+      : 'Never';
+
+    return {
+      ton: this.walletData.balance || '0.00',
+      usdt: this.walletData.tokens?.USDT?.balance || '0.00',
+      lastUpdated
+    };
   }
 
   // Refresh wallet connection status

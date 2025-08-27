@@ -40,6 +40,7 @@ interface WalletState {
   transactions: TONTransaction[];
   isLoading: boolean;
   tokens?: { [symbol: string]: { balance: string; decimals: number; contractAddress?: string } };
+  lastUpdated?: number;
 }
 
 export const EmbeddedWallet: React.FC = () => {
@@ -80,6 +81,16 @@ export const EmbeddedWallet: React.FC = () => {
   useEffect(() => {
     if (walletState.isConnected) {
       loadWalletData();
+      
+      // Start real-time balance monitoring
+      const interval = tonWalletService.startBalanceMonitoring(30000); // Update every 30 seconds
+      
+      // Cleanup function to stop monitoring when component unmounts or wallet disconnects
+      return () => {
+        if (interval) {
+          tonWalletService.stopBalanceMonitoring();
+        }
+      };
     }
   }, [walletState.isConnected]);
 
@@ -177,19 +188,27 @@ export const EmbeddedWallet: React.FC = () => {
     setWalletState(prev => ({ ...prev, isLoading: true }));
     
     try {
-      const [balance, transactions, tokens] = await Promise.all([
-        tonWalletService.getBalance(),
-        tonWalletService.getTransactionHistory(),
-        tonWalletService.getAllTokenBalances(walletState.address!)
+      // Use the new comprehensive balance method
+      const [walletBalances, transactions] = await Promise.all([
+        tonWalletService.getWalletBalances(),
+        tonWalletService.getTransactionHistory()
       ]);
       
       setWalletState(prev => ({
         ...prev,
-        balance,
+        balance: walletBalances.ton,
         transactions,
-        tokens,
+        tokens: walletBalances.tokens,
+        lastUpdated: Date.now(),
         isLoading: false
       }));
+      
+      console.log('✅ Wallet data loaded successfully:', {
+        ton: walletBalances.ton,
+        tokens: walletBalances.tokens,
+        transactionCount: transactions.length,
+        lastUpdated: new Date().toISOString()
+      });
     } catch (error) {
       console.error('Failed to load wallet data:', error);
       setWalletState(prev => ({ ...prev, isLoading: false }));
@@ -639,7 +658,7 @@ export const EmbeddedWallet: React.FC = () => {
               </p>
             </div>
             
-            {/* TON and Convert Token Buttons */}
+            {/* TON and USDT Balance Display */}
             <div className="grid grid-cols-2 gap-4 mb-4">
               {/* TON Balance Box */}
               <div className="bg-white/70 rounded-lg p-4 border border-gray-200">
@@ -651,25 +670,35 @@ export const EmbeddedWallet: React.FC = () => {
                 </p>
               </div>
               
-              {/* Convert Token Button */}
-              <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg p-4 flex items-center justify-center">
-                <Button
-                  variant="ghost"
-                  size="lg"
-                  className="text-white hover:text-white hover:bg-white/20 font-semibold text-lg px-6 py-3"
-                  onClick={() => {
-                    toast({
-                      title: "Token Swap",
-                      description: "Swap USDT to TON for gas fees. This feature will be implemented soon!",
-                    });
-                  }}
-                >
-                  <div className="flex flex-col items-center">
-                    <span className="text-sm font-medium">Convert</span>
-                    <span className="text-xs opacity-90">TOKEN</span>
-                  </div>
-                </Button>
+              {/* USDT Balance Box */}
+              <div className="bg-white/70 rounded-lg p-4 border border-gray-200">
+                <p className="text-2xl font-bold text-green-600">
+                  {formatAmount(walletState.tokens?.USDT?.balance || '0.00')} $USDT
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  ≈ ${(parseFloat(walletState.tokens?.USDT?.balance || '0.00')).toFixed(2)} USD
+                </p>
               </div>
+            </div>
+            
+            {/* Convert Token Button */}
+            <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg p-4 flex items-center justify-center mb-4">
+              <Button
+                variant="ghost"
+                size="lg"
+                className="text-white hover:text-white hover:bg-white/20 font-semibold text-lg px-6 py-3"
+                onClick={() => {
+                  toast({
+                    title: "Token Swap",
+                    description: "Swap USDT to TON for gas fees. This feature will be implemented soon!",
+                  });
+                }}
+              >
+                <div className="flex flex-col items-center">
+                  <span className="text-sm font-medium">Convert</span>
+                  <span className="text-xs opacity-90">USDT → TON</span>
+                </div>
+              </Button>
             </div>
             
             {/* Other Token Balances (if any) */}
@@ -831,8 +860,22 @@ export const EmbeddedWallet: React.FC = () => {
           </div>
         </div>
 
-        {/* Transactions Section */}
+        {/* Real-time Status and Transactions Section */}
         <div className="w-full">
+          {/* Real-time Status */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-sm text-blue-700">Real-time Monitoring Active</span>
+              </div>
+              <div className="text-xs text-blue-600">
+                Updates every 30s • Last: {walletState.lastUpdated ? 
+                  new Date(walletState.lastUpdated).toLocaleTimeString() : 'Never'}
+              </div>
+            </div>
+          </div>
+          
           <div className="flex items-center justify-between mb-4">
             <h4 className="font-medium">Recent Transactions</h4>
             <Button
@@ -840,7 +883,9 @@ export const EmbeddedWallet: React.FC = () => {
               size="sm"
               onClick={loadWalletData}
               disabled={walletState.isLoading}
+              className="flex items-center gap-2"
             >
+              <RefreshCw className={`h-4 w-4 ${walletState.isLoading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
           </div>

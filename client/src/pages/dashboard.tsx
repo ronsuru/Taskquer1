@@ -19,6 +19,7 @@ import { tonWalletService } from "@/services/tonWalletService";
 import { socialMediaService } from "@/services/socialMediaService";
 import { EmbeddedWallet } from "@/components/EmbeddedWallet";
 import { EnhancedWalletIntegration } from "@/components/EnhancedWalletIntegration";
+import { USDTBalanceDemo } from "@/components/USDTBalanceDemo";
 import { toast } from "@/hooks/use-toast";
 
 
@@ -524,6 +525,16 @@ export default function Dashboard() {
                   
                   {/* Embedded Wallet Component */}
                   <EnhancedWalletIntegration />
+                  
+                  {/* USDT Balance Demo */}
+                  <div className="bg-gradient-to-r from-green-400 to-emerald-500 p-6 rounded-lg text-white text-center mb-6">
+                    <h3 className="text-lg font-bold mb-2">USDT Balance Monitoring</h3>
+                    <p className="text-sm text-green-100">Real-time USDT balance tracking for your TON wallet</p>
+                  </div>
+                  
+                  <div className="px-1">
+                    <USDTBalanceDemo />
+                  </div>
                 </div>
               )}
 
