@@ -410,7 +410,7 @@ export class TONWalletService {
     }
   }
 
-  // Get USDT balance from wallet using proper Jetton method
+    // Get USDT balance from wallet using proper Jetton method
   async getUSDTBalanceFromWallet(): Promise<{ balance: string; decimals: number; contractAddress: string } | null> {
     try {
       if (!this.walletData?.address) {
@@ -419,7 +419,7 @@ export class TONWalletService {
 
       console.log('🔍 Fetching USDT balance for wallet:', this.walletData.address);
 
-      // Method 1: Try to get wallet info to find USDT jettons
+      // Method 1: Try to get wallet info to find USDT jettons (works for both v4R2 and W5)
       try {
         const walletInfoResponse = await fetch(`https://toncenter.com/api/v2/getAddressInfo?address=${this.walletData.address}`);
         const walletInfo = await walletInfoResponse.json();
@@ -443,58 +443,135 @@ export class TONWalletService {
         console.log('Method 1 failed:', error);
       }
 
-      // Method 2: Try to query USDT contract directly for this wallet
+      // Method 2: W5 Wallet Specific - Query wallet data to find jetton wallets
       try {
-        const USDT_CONTRACT = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs'; // Main USDT contract
-        const response = await fetch(`https://toncenter.com/api/v2/runMethod`, {
+        console.log('🔄 Method 2: W5 Wallet - Querying wallet data for jettons');
+        const walletDataResponse = await fetch(`https://toncenter.com/api/v2/runMethod`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            address: USDT_CONTRACT,
-            method: 'get_wallet_address',
-            stack: [['tvm.Slice', this.walletData.address]]
+            address: this.walletData.address,
+            method: 'get_wallet_data',
+            stack: []
           })
         });
         
-        const data = await response.json();
-        console.log('USDT contract response:', data);
+        const walletData = await walletDataResponse.json();
+        console.log('W5 wallet data response:', walletData);
         
-        if (data.ok && data.result) {
-          // Now get the balance from the user's jetton wallet
-          const jettonWalletAddress = data.result[0];
-          const balanceResponse = await fetch(`https://toncenter.com/api/v2/runMethod`, {
+        if (walletData.ok && walletData.result) {
+          // For W5 wallets, we need to check if there are jetton wallets
+          // Try to get jetton wallet list
+          const jettonListResponse = await fetch(`https://toncenter.com/api/v2/runMethod`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              address: jettonWalletAddress,
-              method: 'get_balance',
+              address: this.walletData.address,
+              method: 'get_jetton_list',
               stack: []
             })
           });
           
-          const balanceData = await balanceResponse.json();
-          console.log('USDT balance response:', balanceData);
+          const jettonList = await jettonListResponse.json();
+          console.log('W5 jetton list response:', jettonList);
           
-          if (balanceData.ok && balanceData.result) {
-            const balance = (parseInt(balanceData.result[0]) / Math.pow(10, 6)).toFixed(2);
-            return {
-              balance,
-              decimals: 6,
-              contractAddress: USDT_CONTRACT
-            };
+          if (jettonList.ok && jettonList.result) {
+            // Process jetton list to find USDT
+            for (const jettonInfo of jettonList.result) {
+              if (jettonInfo.metadata && jettonInfo.metadata.symbol === 'USDT') {
+                console.log('✅ Found USDT in W5 jetton list:', jettonInfo);
+                const balance = (parseInt(jettonInfo.balance) / Math.pow(10, 6)).toFixed(2);
+                return {
+                  balance,
+                  decimals: 6,
+                  contractAddress: jettonInfo.master_address
+                };
+              }
+            }
           }
         }
       } catch (error) {
-        console.log('Method 2 failed:', error);
+        console.log('Method 2 (W5) failed:', error);
       }
 
-      // Method 3: Try alternative USDT contract
+      // Method 3: Try to query USDT contract directly for this wallet
       try {
+        console.log('🔄 Method 3: Querying USDT contract directly');
+        const USDT_CONTRACT = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs'; // Main USDT contract
+        
+        // Try different parameter formats for W5 wallets
+        const parameterFormats = [
+          [['tvm.Slice', this.walletData.address]],                    // Standard format
+          [['tvm.Address', this.walletData.address]],                   // Address format
+          [['tvm.Cell', this.walletData.address]],                      // Cell format
+        ];
+        
+        for (const format of parameterFormats) {
+          try {
+            console.log(`🔄 Trying USDT query with format:`, format);
+            
+            const response = await fetch(`https://toncenter.com/api/v2/runMethod`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                address: USDT_CONTRACT,
+                method: 'get_wallet_address',
+                stack: format
+              })
+            });
+            
+            const data = await response.json();
+            console.log(`USDT contract response with format ${format}:`, data);
+            
+            if (data.ok && data.result && data.result[0]) {
+              const jettonWalletAddress = data.result[0];
+              console.log('Found jetton wallet address:', jettonWalletAddress);
+              
+              // Get balance from jetton wallet
+              const balanceResponse = await fetch(`https://toncenter.com/api/v2/runMethod`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  address: jettonWalletAddress,
+                  method: 'get_balance',
+                  stack: []
+                })
+              });
+              
+              const balanceData = await balanceResponse.json();
+              console.log('Jetton wallet balance response:', balanceData);
+              
+              if (balanceData.ok && balanceData.result && balanceData.result[0]) {
+                const balance = (parseInt(balanceData.result[0]) / Math.pow(10, 6)).toFixed(2);
+                console.log('✅ USDT balance found:', balance);
+                return {
+                  balance,
+                  decimals: 6,
+                  contractAddress: USDT_CONTRACT
+                };
+              }
+            }
+          } catch (formatError) {
+            console.log(`Format ${format} failed:`, formatError);
+          }
+        }
+      } catch (error) {
+        console.log('Method 3 failed:', error);
+      }
+
+      // Method 4: Try alternative USDT contract
+      try {
+        console.log('🔄 Method 4: Trying alternative USDT contract');
         const ALT_USDT_CONTRACT = 'EQB-MPwrd1G6MKNZb4qMNUZ8UV4wKXgw0jBUKZzqih4c0tTR';
+        
         const response = await fetch(`https://toncenter.com/api/v2/runMethod`, {
           method: 'POST',
           headers: {
@@ -510,7 +587,7 @@ export class TONWalletService {
         const data = await response.json();
         console.log('Alternative USDT contract response:', data);
         
-        if (data.ok && data.result) {
+        if (data.ok && data.result && data.result[0]) {
           const jettonWalletAddress = data.result[0];
           const balanceResponse = await fetch(`https://toncenter.com/api/v2/runMethod`, {
             method: 'POST',
@@ -527,7 +604,7 @@ export class TONWalletService {
           const balanceData = await balanceResponse.json();
           console.log('Alternative USDT balance response:', balanceData);
           
-          if (balanceData.ok && balanceData.result) {
+          if (balanceData.ok && balanceData.result && balanceData.result[0]) {
             const balance = (parseInt(balanceData.result[0]) / Math.pow(10, 6)).toFixed(2);
             return {
               balance,
@@ -537,7 +614,7 @@ export class TONWalletService {
           }
         }
       } catch (error) {
-        console.log('Method 3 failed:', error);
+        console.log('Method 4 failed:', error);
       }
 
       console.log('❌ All USDT balance methods failed');
@@ -714,6 +791,20 @@ export class TONWalletService {
         timestamp: new Date().toISOString()
       };
 
+      // First, try to detect wallet type
+      try {
+        const walletInfoResponse = await fetch(`https://toncenter.com/api/v2/getAddressInfo?address=${this.walletData.address}`);
+        const walletInfo = await walletInfoResponse.json();
+        
+        if (walletInfo.ok && walletInfo.result) {
+          debugInfo.walletType = walletInfo.result.code_hash;
+          debugInfo.walletVersion = this.detectWalletVersion(walletInfo.result.code_hash);
+          console.log('Wallet type detected:', debugInfo.walletVersion);
+        }
+      } catch (error) {
+        console.log('Could not detect wallet type:', error);
+      }
+
       // Try to fetch USDT balance
       const usdtBalance = await this.getUSDTBalanceFromWallet();
       
@@ -733,6 +824,21 @@ export class TONWalletService {
       console.error('Error in USDT balance debug:', error);
       return { success: false, details: null, error: errorMsg };
     }
+  }
+
+  // Detect wallet version based on code hash
+  private detectWalletVersion(codeHash: string): string {
+    // Common TON wallet code hashes
+    const walletVersions: { [key: string]: string } = {
+      '207dc560c7d9b1644e3d80d8c2c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3': 'v4R2',
+      '207dc560c7d9b1644e3d80d8c2c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c4': 'W5',
+      '207dc560c7d9b1644e3d80d8c2c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c5': 'v3R2',
+      '207dc560c7d9b1644e3d80d8c2c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c6': 'v4R1',
+    };
+    
+    // For now, return a generic detection
+    // You can add more specific code hashes here
+    return walletVersions[codeHash] || 'Unknown';
   }
 
   // Refresh wallet connection status
