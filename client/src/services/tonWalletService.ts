@@ -379,6 +379,31 @@ export class TONWalletService {
     }
   }
 
+  // Test TON API v2 connection
+  async testTonApiV2(): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      if (!this.walletData?.address) {
+        return { success: false, error: 'No wallet address' };
+      }
+
+      console.log('🧪 Testing TON API v2 connection...');
+      const response = await fetch(`https://tonapi.io/v2/accounts/${this.walletData.address}/jettons`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ TON API v2 test successful:', data);
+        return { success: true, data };
+      } else {
+        console.log('❌ TON API v2 test failed with status:', response.status);
+        return { success: false, error: `HTTP ${response.status}` };
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.error('TON API v2 test error:', error);
+      return { success: false, error: errorMsg };
+    }
+  }
+
   // Get token balances including USDT
   async getTokenBalances(): Promise<{ [symbol: string]: { balance: string; decimals: number; contractAddress?: string } }> {
     try {
@@ -410,7 +435,7 @@ export class TONWalletService {
     }
   }
 
-    // Get USDT balance from wallet using proper Jetton method
+    // Get USDT balance from wallet using TON API v2 (works for all wallet types including W5)
   async getUSDTBalanceFromWallet(): Promise<{ balance: string; decimals: number; contractAddress: string } | null> {
     try {
       if (!this.walletData?.address) {
@@ -419,18 +444,48 @@ export class TONWalletService {
 
       console.log('🔍 Fetching USDT balance for wallet:', this.walletData.address);
 
-      // Method 1: Try to get wallet info to find USDT jettons (works for both v4R2 and W5)
+      // Method 1: Use TON API v2 to get jettons (works for ALL wallet types including W5)
       try {
+        console.log('🔄 Method 1: Using TON API v2 to get jettons');
+        const tonApiResponse = await fetch(`https://tonapi.io/v2/accounts/${this.walletData.address}/jettons`);
+        
+        if (tonApiResponse.ok) {
+          const jettonsData = await tonApiResponse.json();
+          console.log('📊 TON API v2 jettons response:', jettonsData);
+          
+          if (jettonsData.balances && Array.isArray(jettonsData.balances)) {
+            for (const jetton of jettonsData.balances) {
+              if (jetton.metadata && jetton.metadata.symbol === 'USDT') {
+                console.log('✅ Found USDT jetton via TON API v2:', jetton);
+                const balance = (parseInt(jetton.balance) / Math.pow(10, 6)).toFixed(2); // USDT has 6 decimals
+                return {
+                  balance,
+                  decimals: 6,
+                  contractAddress: jetton.metadata.address
+                };
+              }
+            }
+          }
+        } else {
+          console.log('TON API v2 failed with status:', tonApiResponse.status);
+        }
+      } catch (error) {
+        console.log('Method 1 (TON API v2) failed:', error);
+      }
+
+      // Method 2: Fallback to TON Center API (getAddressInfo)
+      try {
+        console.log('🔄 Method 2: Fallback to TON Center API');
         const walletInfoResponse = await fetch(`https://toncenter.com/api/v2/getAddressInfo?address=${this.walletData.address}`);
         const walletInfo = await walletInfoResponse.json();
         
         if (walletInfo.ok && walletInfo.result && walletInfo.result.jettons) {
-          console.log('📊 Found jettons in wallet:', walletInfo.result.jettons);
+          console.log('📊 Found jettons in wallet via TON Center:', walletInfo.result.jettons);
           
           for (const jetton of walletInfo.result.jettons) {
             if (jetton.metadata && jetton.metadata.symbol === 'USDT') {
-              console.log('✅ Found USDT jetton:', jetton);
-              const balance = (parseInt(jetton.balance) / Math.pow(10, 6)).toFixed(2); // USDT has 6 decimals
+              console.log('✅ Found USDT jetton via TON Center:', jetton);
+              const balance = (parseInt(jetton.balance) / Math.pow(10, 6)).toFixed(2);
               return {
                 balance,
                 decimals: 6,
@@ -440,155 +495,35 @@ export class TONWalletService {
           }
         }
       } catch (error) {
-        console.log('Method 1 failed:', error);
+        console.log('Method 2 (TON Center) failed:', error);
       }
 
-      // Method 2: W5 Wallet Specific - Query wallet data to find jetton wallets
+      // Method 3: Query USDT Master contract directly (works for all wallet types)
       try {
-        console.log('🔄 Method 2: W5 Wallet - Querying wallet data for jettons');
-        const walletDataResponse = await fetch(`https://toncenter.com/api/v2/runMethod`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            address: this.walletData.address,
-            method: 'get_wallet_data',
-            stack: []
-          })
-        });
+        console.log('🔄 Method 3: Querying USDT Master contract directly');
+        const USDT_MASTER = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
         
-        const walletData = await walletDataResponse.json();
-        console.log('W5 wallet data response:', walletData);
-        
-        if (walletData.ok && walletData.result) {
-          // For W5 wallets, we need to check if there are jetton wallets
-          // Try to get jetton wallet list
-          const jettonListResponse = await fetch(`https://toncenter.com/api/v2/runMethod`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              address: this.walletData.address,
-              method: 'get_jetton_list',
-              stack: []
-            })
-          });
-          
-          const jettonList = await jettonListResponse.json();
-          console.log('W5 jetton list response:', jettonList);
-          
-          if (jettonList.ok && jettonList.result) {
-            // Process jetton list to find USDT
-            for (const jettonInfo of jettonList.result) {
-              if (jettonInfo.metadata && jettonInfo.metadata.symbol === 'USDT') {
-                console.log('✅ Found USDT in W5 jetton list:', jettonInfo);
-                const balance = (parseInt(jettonInfo.balance) / Math.pow(10, 6)).toFixed(2);
-                return {
-                  balance,
-                  decimals: 6,
-                  contractAddress: jettonInfo.master_address
-                };
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.log('Method 2 (W5) failed:', error);
-      }
-
-      // Method 3: Try to query USDT contract directly for this wallet
-      try {
-        console.log('🔄 Method 3: Querying USDT contract directly');
-        const USDT_CONTRACT = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs'; // Main USDT contract
-        
-        // Try different parameter formats for W5 wallets
-        const parameterFormats = [
-          [['tvm.Slice', this.walletData.address]],                    // Standard format
-          [['tvm.Address', this.walletData.address]],                   // Address format
-          [['tvm.Cell', this.walletData.address]],                      // Cell format
-        ];
-        
-        for (const format of parameterFormats) {
-          try {
-            console.log(`🔄 Trying USDT query with format:`, format);
-            
-            const response = await fetch(`https://toncenter.com/api/v2/runMethod`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                address: USDT_CONTRACT,
-                method: 'get_wallet_address',
-                stack: format
-              })
-            });
-            
-            const data = await response.json();
-            console.log(`USDT contract response with format ${format}:`, data);
-            
-            if (data.ok && data.result && data.result[0]) {
-              const jettonWalletAddress = data.result[0];
-              console.log('Found jetton wallet address:', jettonWalletAddress);
-              
-              // Get balance from jetton wallet
-              const balanceResponse = await fetch(`https://toncenter.com/api/v2/runMethod`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  address: jettonWalletAddress,
-                  method: 'get_balance',
-                  stack: []
-                })
-              });
-              
-              const balanceData = await balanceResponse.json();
-              console.log('Jetton wallet balance response:', balanceData);
-              
-              if (balanceData.ok && balanceData.result && balanceData.result[0]) {
-                const balance = (parseInt(balanceData.result[0]) / Math.pow(10, 6)).toFixed(2);
-                console.log('✅ USDT balance found:', balance);
-                return {
-                  balance,
-                  decimals: 6,
-                  contractAddress: USDT_CONTRACT
-                };
-              }
-            }
-          } catch (formatError) {
-            console.log(`Format ${format} failed:`, formatError);
-          }
-        }
-      } catch (error) {
-        console.log('Method 3 failed:', error);
-      }
-
-      // Method 4: Try alternative USDT contract
-      try {
-        console.log('🔄 Method 4: Trying alternative USDT contract');
-        const ALT_USDT_CONTRACT = 'EQB-MPwrd1G6MKNZb4qMNUZ8UV4wKXgw0jBUKZzqih4c0tTR';
-        
+        // Get the user's jetton wallet address from the master
         const response = await fetch(`https://toncenter.com/api/v2/runMethod`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            address: ALT_USDT_CONTRACT,
+            address: USDT_MASTER,
             method: 'get_wallet_address',
             stack: [['tvm.Slice', this.walletData.address]]
           })
         });
         
         const data = await response.json();
-        console.log('Alternative USDT contract response:', data);
+        console.log('USDT Master get_wallet_address response:', data);
         
         if (data.ok && data.result && data.result[0]) {
           const jettonWalletAddress = data.result[0];
+          console.log('Found jetton wallet address:', jettonWalletAddress);
+          
+          // Get balance from the user's jetton wallet
           const balanceResponse = await fetch(`https://toncenter.com/api/v2/runMethod`, {
             method: 'POST',
             headers: {
@@ -602,19 +537,20 @@ export class TONWalletService {
           });
           
           const balanceData = await balanceResponse.json();
-          console.log('Alternative USDT balance response:', balanceData);
+          console.log('Jetton wallet balance response:', balanceData);
           
           if (balanceData.ok && balanceData.result && balanceData.result[0]) {
             const balance = (parseInt(balanceData.result[0]) / Math.pow(10, 6)).toFixed(2);
+            console.log('✅ USDT balance found via Master contract:', balance);
             return {
               balance,
               decimals: 6,
-              contractAddress: ALT_USDT_CONTRACT
+              contractAddress: USDT_MASTER
             };
           }
         }
       } catch (error) {
-        console.log('Method 4 failed:', error);
+        console.log('Method 3 (USDT Master) failed:', error);
       }
 
       console.log('❌ All USDT balance methods failed');

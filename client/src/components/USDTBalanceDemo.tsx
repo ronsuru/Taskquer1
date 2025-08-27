@@ -175,6 +175,33 @@ export const USDTBalanceDemo: React.FC = () => {
             🐛 Debug USDT Balance
           </Button>
 
+          <Button
+            onClick={async () => {
+              try {
+                const testResult = await tonWalletService.testTonApiV2();
+                if (testResult.success) {
+                  toast({
+                    title: "TON API v2 Test Successful",
+                    description: "API connection working! Check console for details.",
+                  });
+                  console.log('TON API v2 test result:', testResult.data);
+                } else {
+                  toast({
+                    title: "TON API v2 Test Failed",
+                    description: testResult.error || "Unknown error",
+                    variant: "destructive",
+                  });
+                }
+              } catch (error) {
+                console.error('TON API v2 test error:', error);
+              }
+            }}
+            className="w-full"
+            variant="outline"
+          >
+            🧪 Test TON API v2
+          </Button>
+
           {!isMonitoring ? (
             <Button
               onClick={startMonitoring}
