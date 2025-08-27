@@ -25,7 +25,8 @@ import {
   getUSDTBalance,
   getAllTokenBalances,
   disconnectWallet,
-  subscribeToWalletChanges
+  subscribeToWalletChanges,
+  handleBridgeError
 } from '@/lib/tonconnect';
 
 interface WalletData {
@@ -88,6 +89,19 @@ const TonkeeperWallet: React.FC = () => {
       });
     } catch (error: any) {
       console.error('TON Connect error:', error);
+      
+      // Handle jsBridgekey errors specifically
+      if (handleBridgeError(error)) {
+        toast({
+          title: "Retrying Connection",
+          description: "Bridge error detected, retrying...",
+        });
+        // Try to connect again after a short delay
+        setTimeout(() => {
+          connectWallet();
+        }, 1000);
+        return;
+      }
       
       let errorMessage = 'Failed to connect to wallet';
       if (error.message) {

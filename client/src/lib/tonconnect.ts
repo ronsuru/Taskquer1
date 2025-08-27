@@ -24,9 +24,18 @@ try {
 } catch (error) {
   console.error('Failed to initialize TON Connect:', error);
   // Create a fallback connector
-  connector = new TonConnect({
-    manifestUrl: 'https://taskquer2.vercel.app/tonconnect-manifest.json'
-  });
+  try {
+    connector = new TonConnect({
+      manifestUrl: 'https://taskquer2.vercel.app/tonconnect-manifest.json'
+    });
+    console.log('Fallback TON Connect initialized');
+  } catch (fallbackError) {
+    console.error('Fallback TON Connect also failed:', fallbackError);
+    // Last resort - minimal configuration
+    connector = new TonConnect({
+      manifestUrl: 'https://taskquer2.vercel.app/tonconnect-manifest.json'
+    });
+  }
 }
 
 // Wallet connection status
@@ -139,6 +148,25 @@ export const subscribeToWalletChanges = (callback: (account: any) => void) => {
     // Return a no-op unsubscribe function
     return () => {};
   }
+};
+
+// Handle jsBridgekey errors specifically
+export const handleBridgeError = (error: any) => {
+  if (error && error.message && error.message.includes('jsBridgekey')) {
+    console.error('Bridge key error detected:', error);
+    // Try to reinitialize the connector
+    try {
+      connector = new TonConnect({
+        manifestUrl: 'https://taskquer2.vercel.app/tonconnect-manifest.json'
+      });
+      console.log('TON Connect reinitialized after bridge error');
+      return true;
+    } catch (reinitError) {
+      console.error('Failed to reinitialize after bridge error:', reinitError);
+      return false;
+    }
+  }
+  return false;
 };
 
 // Export the connector for direct use
