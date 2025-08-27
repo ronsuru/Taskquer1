@@ -148,6 +148,33 @@ export const USDTBalanceDemo: React.FC = () => {
             Get Real-time USDT
           </Button>
 
+          <Button
+            onClick={async () => {
+              try {
+                const debugResult = await tonWalletService.debugUSDTBalance();
+                if (debugResult.success) {
+                  toast({
+                    title: "Debug Successful",
+                    description: `USDT Balance: ${debugResult.details.fetchedUSDTBalance}`,
+                  });
+                  console.log('Debug details:', debugResult.details);
+                } else {
+                  toast({
+                    title: "Debug Failed",
+                    description: debugResult.error || "Unknown error",
+                    variant: "destructive",
+                  });
+                }
+              } catch (error) {
+                console.error('Debug error:', error);
+              }
+            }}
+            className="w-full"
+            variant="outline"
+          >
+            🐛 Debug USDT Balance
+          </Button>
+
           {!isMonitoring ? (
             <Button
               onClick={startMonitoring}

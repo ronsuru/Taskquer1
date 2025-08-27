@@ -598,48 +598,97 @@ export const EmbeddedWallet: React.FC = () => {
           <div className="text-center">
             <div className="flex items-center justify-center gap-2 mb-4">
               <p className="text-lg font-semibold text-gray-800">Available Balances</p>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={async () => {
-                  if (walletState.address) {
-                    setWalletState(prev => ({ ...prev, isLoading: true }));
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => {
+                    if (walletState.address) {
+                      setWalletState(prev => ({ ...prev, isLoading: true }));
+                      try {
+                        const [realBalance, tokens] = await Promise.all([
+                          tonWalletService.getRealBalance(walletState.address),
+                          tonWalletService.getAllTokenBalances(walletState.address)
+                        ]);
+                        
+                        tonWalletService.setWalletData(walletState.address, realBalance, tokens);
+                        
+                        setWalletState(prev => ({
+                          ...prev,
+                          balance: realBalance,
+                          tokens,
+                          isLoading: false
+                        }));
+                        
+                        toast({
+                          title: "Balances Refreshed",
+                          description: "Wallet balances have been updated with latest data.",
+                        });
+                      } catch (error) {
+                        console.error('Error refreshing balances:', error);
+                        toast({
+                          title: "Refresh Failed",
+                          description: "Could not refresh wallet balances. Please try again.",
+                          variant: "destructive",
+                        });
+                        setWalletState(prev => ({ ...prev, isLoading: false }));
+                      }
+                    }
+                  }}
+                  disabled={walletState.isLoading}
+                  className="h-6 w-6 p-0 hover:bg-blue-100"
+                  title="Refresh wallet balances"
+                >
+                  <RefreshCw className={`h-3 w-3 ${walletState.isLoading ? 'animate-spin' : ''}`} />
+                </Button>
+                
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => {
                     try {
-                      const [realBalance, tokens] = await Promise.all([
-                        tonWalletService.getRealBalance(walletState.address),
-                        tonWalletService.getAllTokenBalances(walletState.address)
-                      ]);
+                      setWalletState(prev => ({ ...prev, isLoading: true }));
+                      const usdtBalance = await tonWalletService.forceRefreshUSDTBalance();
                       
-                      tonWalletService.setWalletData(walletState.address, realBalance, tokens);
-                      
-                      setWalletState(prev => ({
-                        ...prev,
-                        balance: realBalance,
-                        tokens,
-                        isLoading: false
-                      }));
-                      
-                      toast({
-                        title: "Balances Refreshed",
-                        description: "Wallet balances have been updated with latest data.",
-                      });
+                      if (usdtBalance && usdtBalance !== '0.00') {
+                        setWalletState(prev => ({
+                          ...prev,
+                          tokens: {
+                            ...prev.tokens,
+                            USDT: { balance: usdtBalance, decimals: 6, contractAddress: 'USDT' }
+                          },
+                          isLoading: false
+                        }));
+                        
+                        toast({
+                          title: "USDT Balance Found!",
+                          description: `Your USDT balance: ${usdtBalance} USDT`,
+                        });
+                      } else {
+                        toast({
+                          title: "No USDT Found",
+                          description: "No USDT balance detected in this wallet.",
+                          variant: "destructive",
+                        });
+                        setWalletState(prev => ({ ...prev, isLoading: false }));
+                      }
                     } catch (error) {
-                      console.error('Error refreshing balances:', error);
+                      console.error('Error force refreshing USDT:', error);
                       toast({
-                        title: "Refresh Failed",
-                        description: "Could not refresh wallet balances. Please try again.",
+                        title: "USDT Refresh Failed",
+                        description: "Could not refresh USDT balance. Please try again.",
                         variant: "destructive",
                       });
                       setWalletState(prev => ({ ...prev, isLoading: false }));
                     }
-                  }
-                }}
-                disabled={walletState.isLoading}
-                className="h-6 w-6 p-0 hover:bg-blue-100"
-                title="Refresh wallet balances"
-              >
-                <RefreshCw className={`h-3 w-3 ${walletState.isLoading ? 'animate-spin' : ''}`} />
-              </Button>
+                  }}
+                  disabled={walletState.isLoading}
+                  className="h-6 w-6 p-0 hover:bg-green-100 text-green-600"
+                  title="Force refresh USDT balance"
+                >
+                  💰
+                </Button>
+              </div>
             </div>
             
             {/* Main USDT Balance - Prominently Displayed */}

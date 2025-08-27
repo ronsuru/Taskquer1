@@ -343,6 +343,42 @@ export class TONWalletService {
     }
   }
 
+  // Force refresh USDT balance (bypass cache)
+  async forceRefreshUSDTBalance(): Promise<string> {
+    try {
+      console.log('🔄 Force refreshing USDT balance...');
+      
+      // Clear any cached USDT data
+      if (this.walletData?.tokens?.USDT) {
+        delete this.walletData.tokens.USDT;
+      }
+      
+      // Fetch fresh USDT balance
+      const usdtBalance = await this.getUSDTBalanceFromWallet();
+      
+      if (usdtBalance) {
+        // Update wallet data
+        if (this.walletData) {
+          if (!this.walletData.tokens) {
+            this.walletData.tokens = {};
+          }
+          this.walletData.tokens.USDT = usdtBalance;
+          this.walletData.lastUpdated = Date.now();
+          this.saveWalletData();
+        }
+        
+        console.log('✅ USDT balance force refreshed:', usdtBalance.balance);
+        return usdtBalance.balance;
+      } else {
+        console.log('❌ Failed to fetch USDT balance');
+        return '0.00';
+      }
+    } catch (error) {
+      console.error('Error force refreshing USDT balance:', error);
+      return '0.00';
+    }
+  }
+
   // Get token balances including USDT
   async getTokenBalances(): Promise<{ [symbol: string]: { balance: string; decimals: number; contractAddress?: string } }> {
     try {
@@ -352,12 +388,9 @@ export class TONWalletService {
 
       const tokens: { [symbol: string]: { balance: string; decimals: number; contractAddress?: string } } = {};
 
-      // USDT contract address on TON mainnet
-      const USDT_CONTRACT = 'EQB-MPwrd1G6MKNZb4qMNUZ8UV4wKXgw0jBUKZzqih4c0tTR';
-      
-      // Fetch USDT balance
+      // Fetch USDT balance using proper Jetton balance method
       try {
-        const usdtBalance = await this.getTokenBalance(USDT_CONTRACT, 'USDT', 9);
+        const usdtBalance = await this.getUSDTBalanceFromWallet();
         if (usdtBalance) {
           tokens.USDT = usdtBalance;
         }
@@ -374,6 +407,144 @@ export class TONWalletService {
     } catch (error) {
       console.error('Error fetching token balances:', error);
       return {};
+    }
+  }
+
+  // Get USDT balance from wallet using proper Jetton method
+  async getUSDTBalanceFromWallet(): Promise<{ balance: string; decimals: number; contractAddress: string } | null> {
+    try {
+      if (!this.walletData?.address) {
+        throw new Error('Wallet not connected');
+      }
+
+      console.log('🔍 Fetching USDT balance for wallet:', this.walletData.address);
+
+      // Method 1: Try to get wallet info to find USDT jettons
+      try {
+        const walletInfoResponse = await fetch(`https://toncenter.com/api/v2/getAddressInfo?address=${this.walletData.address}`);
+        const walletInfo = await walletInfoResponse.json();
+        
+        if (walletInfo.ok && walletInfo.result && walletInfo.result.jettons) {
+          console.log('📊 Found jettons in wallet:', walletInfo.result.jettons);
+          
+          for (const jetton of walletInfo.result.jettons) {
+            if (jetton.metadata && jetton.metadata.symbol === 'USDT') {
+              console.log('✅ Found USDT jetton:', jetton);
+              const balance = (parseInt(jetton.balance) / Math.pow(10, 6)).toFixed(2); // USDT has 6 decimals
+              return {
+                balance,
+                decimals: 6,
+                contractAddress: jetton.metadata.address
+              };
+            }
+          }
+        }
+      } catch (error) {
+        console.log('Method 1 failed:', error);
+      }
+
+      // Method 2: Try to query USDT contract directly for this wallet
+      try {
+        const USDT_CONTRACT = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs'; // Main USDT contract
+        const response = await fetch(`https://toncenter.com/api/v2/runMethod`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            address: USDT_CONTRACT,
+            method: 'get_wallet_address',
+            stack: [['tvm.Slice', this.walletData.address]]
+          })
+        });
+        
+        const data = await response.json();
+        console.log('USDT contract response:', data);
+        
+        if (data.ok && data.result) {
+          // Now get the balance from the user's jetton wallet
+          const jettonWalletAddress = data.result[0];
+          const balanceResponse = await fetch(`https://toncenter.com/api/v2/runMethod`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              address: jettonWalletAddress,
+              method: 'get_balance',
+              stack: []
+            })
+          });
+          
+          const balanceData = await balanceResponse.json();
+          console.log('USDT balance response:', balanceData);
+          
+          if (balanceData.ok && balanceData.result) {
+            const balance = (parseInt(balanceData.result[0]) / Math.pow(10, 6)).toFixed(2);
+            return {
+              balance,
+              decimals: 6,
+              contractAddress: USDT_CONTRACT
+            };
+          }
+        }
+      } catch (error) {
+        console.log('Method 2 failed:', error);
+      }
+
+      // Method 3: Try alternative USDT contract
+      try {
+        const ALT_USDT_CONTRACT = 'EQB-MPwrd1G6MKNZb4qMNUZ8UV4wKXgw0jBUKZzqih4c0tTR';
+        const response = await fetch(`https://toncenter.com/api/v2/runMethod`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            address: ALT_USDT_CONTRACT,
+            method: 'get_wallet_address',
+            stack: [['tvm.Slice', this.walletData.address]]
+          })
+        });
+        
+        const data = await response.json();
+        console.log('Alternative USDT contract response:', data);
+        
+        if (data.ok && data.result) {
+          const jettonWalletAddress = data.result[0];
+          const balanceResponse = await fetch(`https://toncenter.com/api/v2/runMethod`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              address: jettonWalletAddress,
+              method: 'get_balance',
+              stack: []
+            })
+          });
+          
+          const balanceData = await balanceResponse.json();
+          console.log('Alternative USDT balance response:', balanceData);
+          
+          if (balanceData.ok && balanceData.result) {
+            const balance = (parseInt(balanceData.result[0]) / Math.pow(10, 6)).toFixed(2);
+            return {
+              balance,
+              decimals: 6,
+              contractAddress: ALT_USDT_CONTRACT
+            };
+          }
+        }
+      } catch (error) {
+        console.log('Method 3 failed:', error);
+      }
+
+      console.log('❌ All USDT balance methods failed');
+      return null;
+    } catch (error) {
+      console.error('Error fetching USDT balance from wallet:', error);
+      return null;
     }
   }
 
@@ -526,6 +697,42 @@ export class TONWalletService {
       usdt: this.walletData.tokens?.USDT?.balance || '0.00',
       lastUpdated
     };
+  }
+
+  // Debug USDT balance fetching
+  async debugUSDTBalance(): Promise<{ success: boolean; details: any; error?: string }> {
+    try {
+      console.log('🔍 Starting USDT balance debug...');
+      
+      if (!this.walletData?.address) {
+        return { success: false, details: null, error: 'No wallet address' };
+      }
+
+      const debugInfo: any = {
+        walletAddress: this.walletData.address,
+        currentUSDTBalance: this.walletData.tokens?.USDT?.balance || '0.00',
+        timestamp: new Date().toISOString()
+      };
+
+      // Try to fetch USDT balance
+      const usdtBalance = await this.getUSDTBalanceFromWallet();
+      
+      if (usdtBalance) {
+        debugInfo.fetchedUSDTBalance = usdtBalance.balance;
+        debugInfo.success = true;
+        console.log('✅ USDT balance debug successful:', debugInfo);
+        return { success: true, details: debugInfo };
+      } else {
+        debugInfo.success = false;
+        debugInfo.error = 'Failed to fetch USDT balance';
+        console.log('❌ USDT balance debug failed:', debugInfo);
+        return { success: false, details: debugInfo, error: 'Failed to fetch USDT balance' };
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error in USDT balance debug:', error);
+      return { success: false, details: null, error: errorMsg };
+    }
   }
 
   // Refresh wallet connection status
