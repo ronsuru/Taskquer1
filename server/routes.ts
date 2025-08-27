@@ -52,23 +52,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid TON address format" });
       }
 
-      // Get wallet balance and basic info
+      // Get real wallet data from TON blockchain
+      console.log(`[API] Fetching real data for address: ${address}`);
+      
       const balance = await tonService.getWalletBalance(address);
       const usdtBalance = await tonService.getUSDTBalance(address);
+      const transactions = await tonService.getWalletTransactions(address, 10);
       
-      // Get recent transactions (mock data for now)
-      const transactions = [
-        {
-          hash: "mock_hash_1",
-          timestamp: Date.now() - 86400000,
-          amount: "1.2345",
-          type: "in" as const,
-          from: "EQ" + "0".repeat(48),
-          to: address,
-          fee: "0.001",
-          status: "completed" as const
-        }
-      ];
+      console.log(`[API] Real data fetched - TON: ${balance}, USDT: ${usdtBalance}, TXs: ${transactions.length}`);
 
       res.json({
         address,

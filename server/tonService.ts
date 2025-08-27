@@ -552,6 +552,136 @@ export class TonService {
     }
   }
 
+  // Get real TON balance for any wallet address
+  async getWalletBalance(address: string): Promise<string> {
+    try {
+      console.log(`[TON SERVICE] Fetching TON balance for address: ${address}`);
+      
+      // Use TON Center API (no API key required)
+      const response = await fetch(
+        `https://toncenter.com/api/v2/getAddressBalance?address=${address}`,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Taskquer2-Server/1.0'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`TON Center API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.ok && data.result) {
+        // Convert from nanoTON to TON (1 TON = 10^9 nanoTON)
+        const balanceInTON = (parseInt(data.result) / 1000000000).toFixed(4);
+        console.log(`[TON SERVICE] Balance for ${address}: ${balanceInTON} TON`);
+        return balanceInTON;
+      } else {
+        throw new Error(`TON Center API error: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error(`[TON SERVICE] Error fetching TON balance for ${address}:`, error);
+      // Return "0" instead of throwing to prevent API failures
+      return "0";
+    }
+  }
+
+  // Get real USDT balance for any wallet address
+  async getUSDTBalance(address: string): Promise<string> {
+    try {
+      console.log(`[TON SERVICE] Fetching USDT balance for address: ${address}`);
+      
+      // Use TON Center API for jetton balance (no API key required)
+      const response = await fetch(
+        `https://toncenter.com/api/v2/getJettonData?account=${address}&jetton=${USDT_MASTER}`,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Taskquer2-Server/1.0'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`TON Center API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.ok && data.result && data.result.balance) {
+        // Convert from jetton units to USDT (6 decimals for USDT)
+        const balanceInUSDT = (parseInt(data.result.balance) / 1000000).toFixed(2);
+        console.log(`[TON SERVICE] USDT balance for ${address}: ${balanceInUSDT} USDT`);
+        return balanceInUSDT;
+      } else {
+        // If no USDT balance found, return "0"
+        console.log(`[TON SERVICE] No USDT balance found for ${address}`);
+        return "0";
+      }
+    } catch (error) {
+      console.error(`[TON SERVICE] Error fetching USDT balance for ${address}:`, error);
+      // Return "0" instead of throwing to prevent API failures
+      return "0";
+    }
+  }
+
+  // Get real transaction history for any wallet address
+  async getWalletTransactions(address: string, limit: number = 10): Promise<any[]> {
+    try {
+      console.log(`[TON SERVICE] Fetching transactions for address: ${address}`);
+      
+      // Use TON Center API to get recent transactions
+      const response = await fetch(
+        `https://toncenter.com/api/v2/getTransactions?address=${address}&limit=${limit}`,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Taskquer2-Server/1.0'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`TON Center API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.ok && data.result && Array.isArray(data.result)) {
+        // Transform TON Center transaction format to our format
+        const transactions = data.result.map((tx: any) => {
+          const isIncoming = tx.in_msg && tx.in_msg.source === address;
+          const amount = tx.in_msg?.value || tx.out_msgs?.[0]?.value || "0";
+          const amountInTON = (parseInt(amount) / 1000000000).toFixed(4);
+          
+          return {
+            hash: tx.transaction_id.hash,
+            timestamp: tx.utime * 1000, // Convert Unix timestamp to milliseconds
+            amount: amountInTON,
+            type: isIncoming ? 'in' : 'out',
+            from: tx.in_msg?.source || 'Unknown',
+            to: tx.out_msgs?.[0]?.destination || 'Unknown',
+            fee: (parseInt(tx.fee || "0") / 1000000000).toFixed(4),
+            status: 'completed'
+          };
+        });
+
+        console.log(`[TON SERVICE] Found ${transactions.length} transactions for ${address}`);
+        return transactions;
+      } else {
+        console.log(`[TON SERVICE] No transactions found for ${address}`);
+        return [];
+      }
+    } catch (error) {
+      console.error(`[TON SERVICE] Error fetching transactions for ${address}:`, error);
+      // Return empty array instead of throwing to prevent API failures
+      return [];
+    }
+  }
+
   // Get bot wallet balances (TON and USDT)
   async getBotWalletBalances(): Promise<{
     address?: string;

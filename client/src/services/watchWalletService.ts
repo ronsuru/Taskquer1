@@ -242,45 +242,12 @@ export class WatchWalletService {
         transactions: data.transactions || []
       };
     } catch (error) {
-      // Fallback to mock data if API fails
-      console.warn('API call failed, using mock data:', error);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Generate mock data
-      const balance = (Math.random() * 10).toFixed(4);
-      const usdtBalance = (Math.random() * 1000).toFixed(2);
-      const transactions = this.generateMockTransactions(address);
-      
-      return {
-        address,
-        balance,
-        usdtBalance,
-        transactions
-      };
+      console.error('API call failed:', error);
+      throw new Error(`Failed to fetch wallet data: ${error}`);
     }
   }
 
-  private generateMockTransactions(address: string): Transaction[] {
-    const transactions: Transaction[] = [];
-    const now = Date.now();
-    
-    for (let i = 0; i < 10; i++) {
-      transactions.push({
-        hash: `hash_${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: now - (i * 86400000), // Each day
-        amount: (Math.random() * 100).toFixed(4),
-        type: Math.random() > 0.5 ? 'in' : 'out',
-        from: Math.random() > 0.5 ? address : `EQ${Math.random().toString(36).substr(2, 48)}`,
-        to: Math.random() > 0.5 ? `EQ${Math.random().toString(36).substr(2, 48)}` : address,
-        fee: (Math.random() * 0.1).toFixed(4),
-        status: 'completed'
-      });
-    }
-    
-    return transactions.sort((a, b) => b.timestamp - a.timestamp);
-  }
+
 
   private validateTONAddress(address: string): boolean {
     // Comprehensive TON address validation

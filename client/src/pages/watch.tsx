@@ -101,6 +101,7 @@ export default function WatchPage() {
     }
     
     console.log('✅ Address validation passed');
+    console.log('🌐 Fetching real blockchain data...');
 
     setIsLoading(true);
     try {
@@ -116,7 +117,7 @@ export default function WatchPage() {
       
       toast({
         title: "Wallet Added",
-        description: "Now watching wallet: " + address.slice(0, 8) + "...",
+        description: `Now watching wallet: ${address.slice(0, 8)}... with real-time blockchain data`,
       });
     } catch (error) {
       toast({
@@ -190,15 +191,19 @@ export default function WatchPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 pb-24">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center justify-center gap-2">
-            <Eye className="w-8 h-8 text-blue-600" />
-            Watch Wallet
-          </h1>
-          <p className="text-gray-600">
-            Monitor TON wallets without connecting your own wallet
-          </p>
-        </div>
+                 <div className="text-center space-y-2">
+           <h1 className="text-3xl font-bold text-gray-900 flex items-center justify-center gap-2">
+             <Eye className="w-8 h-8 text-blue-600" />
+             Watch Wallet
+           </h1>
+           <p className="text-gray-600">
+             Monitor TON wallets without connecting your own wallet
+           </p>
+           <div className="flex items-center justify-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
+             <Activity className="w-4 h-4" />
+             <span>Real-time blockchain data from TON Center</span>
+           </div>
+         </div>
 
         {/* Add Wallet Section */}
         <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">

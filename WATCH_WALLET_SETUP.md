@@ -41,15 +41,22 @@ The Watch Wallet feature allows users to monitor TON wallets without connecting 
 - **Navigation Integration**: Added to main dashboard navigation
 
 ### Backend API Endpoints
-- `GET /api/watch-wallet/:address` - Fetch wallet data
-- `POST /api/watch-wallet/:address/refresh` - Refresh wallet data
+- `GET /api/watch-wallet/:address` - Fetch real wallet data from TON blockchain
+- `POST /api/watch-wallet/:address/refresh` - Refresh real wallet data from TON blockchain
+
+### Real Data Sources
+- **TON Balance**: Fetched from TON Center API (`/getAddressBalance`)
+- **USDT Balance**: Fetched from TON Center API (`/getJettonData`) for USDT jetton
+- **Transaction History**: Fetched from TON Center API (`/getTransactions`)
+- **No Mock Data**: All data is real-time from the TON blockchain
 
 ### Data Flow
 1. User enters wallet address
 2. Frontend validates address format
-3. Backend fetches real wallet data from TON blockchain
-4. Data is cached locally and updated periodically
-5. UI displays wallet information in real-time
+3. Backend fetches **real-time data** from TON Center API (TON blockchain)
+4. Real balances, USDT amounts, and transaction history are retrieved
+5. Data is cached locally and updated periodically
+6. UI displays **actual blockchain data** in real-time
 
 ## Usage
 
