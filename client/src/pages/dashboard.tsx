@@ -20,7 +20,7 @@ import { socialMediaService } from "@/services/socialMediaService";
 import { EmbeddedWallet } from "@/components/EmbeddedWallet";
 import { EnhancedWalletIntegration } from "@/components/EnhancedWalletIntegration";
 import { toast } from "@/hooks/use-toast";
-import TonkeeperWallet from "./tonkeeper-wallet";
+
 
 export default function Dashboard() {
   const { user: telegramUser, isTelegramApp, isInitialized } = useTelegram();
@@ -30,7 +30,7 @@ export default function Dashboard() {
   const [showProfile, setShowProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showCreateCampaign, setShowCreateCampaign] = useState(false);
-  const [activeSection, setActiveSection] = useState<'dashboard' | 'tonWallet' | 'tonkeeperWallet' | 'browseTask' | 'transactionWithdrawal' | 'profileSettings'>('dashboard');
+  const [activeSection, setActiveSection] = useState<'dashboard' | 'tonWallet' | 'browseTask' | 'transactionWithdrawal' | 'profileSettings'>('dashboard');
   const [nickname, setNickname] = useState('');
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [dateOfBirth, setDateOfBirth] = useState('');
@@ -527,18 +527,7 @@ export default function Dashboard() {
                 </div>
               )}
 
-                             {/* Tonkeeper Wallet Section */}
-               {activeSection === 'tonkeeperWallet' && (
-                 <div className="space-y-6 px-1 -mt-4">
-                  <div className="bg-gradient-to-r from-blue-400 to-purple-500 p-6 rounded-lg text-white text-center">
-                    <h3 className="text-lg font-bold mb-2">Tonkeeper Wallet</h3>
-                    <p className="text-sm text-blue-100">Connect directly to your Tonkeeper wallet for real-time balances</p>
-                  </div>
-                  
-                  {/* Tonkeeper Wallet Component */}
-                  <TonkeeperWallet />
-                </div>
-              )}
+
 
                              {/* Browse Tasks Section */}
                {activeSection === 'browseTask' && (
@@ -1100,18 +1089,7 @@ export default function Dashboard() {
               <span className="text-xs font-medium">Wallet</span>
             </button>
 
-            {/* Tonkeeper Wallet */}
-            <button
-              onClick={() => setActiveSection('tonkeeperWallet')}
-              className={`flex flex-col items-center space-y-2 p-3 rounded-xl transition-all duration-200 ${
-                activeSection === 'tonkeeperWallet' 
-                ? 'text-blue-600 bg-blue-50/80 shadow-sm' 
-                : 'text-gray-500 hover:text-blue-600 hover:bg-gray-50/50'
-              }`}
-            >
-              <Wallet className={`w-5 h-5 ${activeSection === 'tonkeeperWallet' ? 'text-blue-600' : 'text-gray-400'}`} />
-              <span className="text-xs font-medium">Tonkeeper</span>
-            </button>
+
 
             {/* Browse Task */}
             <button
