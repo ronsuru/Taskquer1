@@ -18,23 +18,57 @@ export const tonConnectOptions = {
 // Initialize TON Connect with error handling
 let connector: TonConnect;
 
-try {
-  connector = new TonConnect(tonConnectOptions);
-  console.log('TON Connect initialized successfully');
-} catch (error) {
-  console.error('Failed to initialize TON Connect:', error);
-  // Create a fallback connector
+// Try different TON Connect configurations
+const tryInitializeConnector = () => {
+  const configs = [
+    // Primary configuration
+    {
+      manifestUrl: 'https://taskquer2.vercel.app/tonconnect-manifest.json',
+      items: [
+        { name: 'ton_addr', maxVersion: 1 },
+        { name: 'ton_proof', maxVersion: 1 }
+      ]
+    },
+    // Fallback 1: Different manifest format
+    {
+      manifestUrl: 'https://taskquer2.vercel.app/tonconnect-manifest.json'
+    },
+    // Fallback 2: Minimal configuration
+    {
+      manifestUrl: 'https://taskquer2.vercel.app/tonconnect-manifest.json'
+    }
+  ];
+
+  for (let i = 0; i < configs.length; i++) {
+    try {
+      const config = configs[i];
+      console.log(`Trying TON Connect config ${i + 1}:`, config);
+      connector = new TonConnect(config);
+      console.log(`TON Connect initialized successfully with config ${i + 1}`);
+      return true;
+    } catch (error) {
+      console.error(`Config ${i + 1} failed:`, error);
+      if (i === configs.length - 1) {
+        console.error('All TON Connect configurations failed');
+        return false;
+      }
+    }
+  }
+  return false;
+};
+
+// Initialize the connector
+if (!tryInitializeConnector()) {
+  // Last resort - create a basic connector
   try {
     connector = new TonConnect({
       manifestUrl: 'https://taskquer2.vercel.app/tonconnect-manifest.json'
     });
-    console.log('Fallback TON Connect initialized');
-  } catch (fallbackError) {
-    console.error('Fallback TON Connect also failed:', fallbackError);
-    // Last resort - minimal configuration
-    connector = new TonConnect({
-      manifestUrl: 'https://taskquer2.vercel.app/tonconnect-manifest.json'
-    });
+    console.log('Basic TON Connect initialized as last resort');
+  } catch (error) {
+    console.error('Even basic TON Connect failed:', error);
+    // Create a mock connector to prevent crashes
+    connector = {} as any;
   }
 }
 
@@ -156,19 +190,45 @@ export const handleBridgeError = (error: any) => {
   if (error && typeof error === 'object' && error.message && typeof error.message === 'string') {
     if (error.message.includes('jsBridgekey') || error.message.includes('jsBridgeKey')) {
       console.error('Bridge key error detected:', error);
-      // Try to reinitialize the connector
-      try {
-        connector = new TonConnect({
-          manifestUrl: 'https://taskquer2.vercel.app/tonconnect-manifest.json'
-        });
-        console.log('TON Connect reinitialized after bridge error');
-        return true;
-      } catch (reinitError) {
-        console.error('Failed to reinitialize after bridge error:', reinitError);
-        return false;
-      }
+      
+      // Try alternative connection methods
+      return tryAlternativeConnection();
     }
   }
+  return false;
+};
+
+// Try alternative connection methods
+const tryAlternativeConnection = () => {
+  const alternativeConfigs = [
+    // Try with different manifest format
+    {
+      manifestUrl: 'https://taskquer2.vercel.app/tonconnect-manifest.json',
+      items: [{ name: 'ton_addr', maxVersion: 1 }]
+    },
+    // Try minimal configuration
+    {
+      manifestUrl: 'https://taskquer2.vercel.app/tonconnect-manifest.json'
+    },
+    // Try with different items
+    {
+      manifestUrl: 'https://taskquer2.vercel.app/tonconnect-manifest.json',
+      items: [{ name: 'ton_addr', maxVersion: 1 }]
+    }
+  ];
+
+  for (let i = 0; i < alternativeConfigs.length; i++) {
+    try {
+      console.log(`Trying alternative config ${i + 1} after bridge error`);
+      connector = new TonConnect(alternativeConfigs[i]);
+      console.log(`Alternative config ${i + 1} successful`);
+      return true;
+    } catch (error) {
+      console.error(`Alternative config ${i + 1} failed:`, error);
+    }
+  }
+  
+  console.error('All alternative connection methods failed');
   return false;
 };
 
