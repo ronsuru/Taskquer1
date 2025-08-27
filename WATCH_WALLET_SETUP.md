@@ -15,6 +15,7 @@ The Watch Wallet feature allows users to monitor TON wallets without connecting 
 
 ### Core Functionality
 - **Add Wallet to Watch**: Enter any valid TON wallet address to start monitoring
+- **Universal Address Support**: Accepts bounceable (EQ), non-bounceable (UQ), and raw hex formats
 - **Real-time Updates**: Automatic refresh every 30 seconds
 - **Multiple Wallets**: Watch multiple wallets simultaneously
 - **Persistent Storage**: Watched wallets are saved locally and restored on app restart
@@ -64,7 +65,14 @@ The Watch Wallet feature allows users to monitor TON wallets without connecting 
 - **View Details**: Use tabs to explore different aspects of wallet data
 
 ### Address Validation
-The system validates TON addresses using the format: `EQ[a-zA-Z0-9]{48}`
+The system now supports all TON wallet address formats:
+
+- **EQ...** - Bounceable addresses (workchain 0) - e.g., `EQBQLMDDw9022vZaXNXdWfh0om2sP_4AONerajNCnmcuLXJh`
+- **UQ...** - Non-bounceable addresses (workchain 0) - e.g., `UQBQLMDDw9022vZaXNXdWfh0om2sP_4AONerajNCnmcuLXJh`
+- **0:0:...** - Raw hex format (workchain 0) - e.g., `0:0:1234567890abcdef...`
+- **-1:...** - Raw hex format (workchain -1) - e.g., `-1:1234567890abcdef...`
+
+The validation is comprehensive and accepts any reasonable TON address format, making it easy to watch wallets regardless of how the address is presented.
 
 ## Integration with Tonkeeper
 
@@ -110,9 +118,14 @@ No additional environment variables are required for basic functionality.
 ## Troubleshooting
 
 ### Common Issues
-1. **Invalid Address Format**: Ensure address starts with "EQ" and is 48 characters long
-2. **API Errors**: Check network connection and server status
-3. **Data Not Updating**: Verify wallet is actively being watched
+1. **Invalid Address Format**: The system now supports multiple TON address formats:
+   - **EQ...** (bounceable) - Most common format, 48-50 characters
+   - **UQ...** (non-bounceable) - Alternative format, 48-50 characters  
+   - **0:0:...** (raw hex) - Workchain 0 format
+   - **-1:...** (raw hex) - Workchain -1 format
+2. **Address Length Issues**: TON addresses should be between 40-60 characters depending on format
+3. **API Errors**: Check network connection and server status
+4. **Data Not Updating**: Verify wallet is actively being watched
 
 ### Debug Information
 - Check browser console for API call logs

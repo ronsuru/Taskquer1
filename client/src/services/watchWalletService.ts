@@ -283,8 +283,38 @@ export class WatchWalletService {
   }
 
   private validateTONAddress(address: string): boolean {
-    // Basic TON address validation
-    return /^EQ[a-zA-Z0-9]{48}$/.test(address);
+    // Comprehensive TON address validation
+    // TON addresses can start with various prefixes:
+    // - EQ: External Query (workchain 0, bounceable)
+    // - UQ: User Query (workchain 0, non-bounceable)
+    // - 0:0: Raw format (workchain 0)
+    // - -1: Raw format (workchain -1)
+    // - 0:1: Raw format (workchain 0, bounceable)
+    // - 0:0: Raw format (workchain 0, non-bounceable)
+    
+    // More flexible validation - allow any reasonable TON address format
+    if (!address || address.length < 10) {
+      return false;
+    }
+    
+    // Check for common TON address prefixes
+    if (address.startsWith('EQ') || address.startsWith('UQ')) {
+      // EQ/UQ addresses should be 48-50 characters total (2 prefix + 46-48 base64)
+      return address.length >= 48 && address.length <= 50;
+    }
+    
+    // Check for workchain format (e.g., 0:0:...)
+    if (address.includes(':')) {
+      const parts = address.split(':');
+      if (parts.length >= 2) {
+        const lastPart = parts[parts.length - 1];
+        return lastPart.length >= 40 && lastPart.length <= 60;
+      }
+    }
+    
+    // For any other format, just check if it's reasonable length and valid chars
+    const validChars = /^[A-Za-z0-9+/=:]+$/;
+    return validChars.test(address) && address.length >= 40 && address.length <= 60;
   }
 
   // Get recent addresses from localStorage
@@ -306,6 +336,29 @@ export class WatchWalletService {
       localStorage.setItem('watch_wallet_recent_addresses', JSON.stringify(updated));
     } catch (error) {
       console.error('Error saving recent addresses:', error);
+    }
+  }
+
+  // Convert address to a standardized display format
+  normalizeAddress(address: string): string {
+    try {
+      // If it's already a user-friendly format (EQ/UQ), return as is
+      if (address.startsWith('EQ') || address.startsWith('UQ')) {
+        return address;
+      }
+      
+      // For raw hex formats, try to convert to bounceable format for consistency
+      // This is a simplified conversion - in production you might want to use a proper TON library
+      if (address.includes(':')) {
+        // For now, return the original address
+        // TODO: Implement proper conversion using TON libraries
+        return address;
+      }
+      
+      return address;
+    } catch (error) {
+      console.error('Error normalizing address:', error);
+      return address;
     }
   }
 

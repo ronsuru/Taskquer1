@@ -47,8 +47,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { address } = req.params;
       
-      // Validate TON address format
-      if (!/^EQ[a-zA-Z0-9]{48}$/.test(address)) {
+      // Validate TON address format (comprehensive validation)
+      if (!tonService.validateAddress(address)) {
         return res.status(400).json({ error: "Invalid TON address format" });
       }
 
@@ -88,8 +88,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { address } = req.params;
       
-      // Validate TON address format
-      if (!/^EQ[a-zA-Z0-9]{48}$/.test(address)) {
+      // Validate TON address format (comprehensive validation)
+      if (!tonService.validateAddress(address)) {
         return res.status(400).json({ error: "Invalid TON address format" });
       }
 

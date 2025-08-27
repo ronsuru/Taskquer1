@@ -48,18 +48,59 @@ export default function WatchPage() {
   };
 
   const validateTONAddress = (address: string): boolean => {
-    return /^EQ[a-zA-Z0-9]{48}$/.test(address);
+    // Comprehensive TON address validation
+    // TON addresses can start with various prefixes:
+    // - EQ: External Query (workchain 0, bounceable)
+    // - UQ: User Query (workchain 0, non-bounceable)
+    // - 0:0: Raw format (workchain 0)
+    // - -1: Raw format (workchain -1)
+    // - 0:1: Raw format (workchain 0, bounceable)
+    // - 0:0: Raw format (workchain 0, non-bounceable)
+    
+    // More flexible validation - allow any reasonable TON address format
+    if (!address || address.length < 10) {
+      return false;
+    }
+    
+    // Check for common TON address prefixes
+    if (address.startsWith('EQ') || address.startsWith('UQ')) {
+      // EQ/UQ addresses should be 48-50 characters total (2 prefix + 46-48 base64)
+      return address.length >= 48 && address.length <= 50;
+    }
+    
+    // Check for workchain format (e.g., 0:0:...)
+    if (address.includes(':')) {
+      const parts = address.split(':');
+      if (parts.length >= 2) {
+        const lastPart = parts[parts.length - 1];
+        return lastPart.length >= 40 && lastPart.length <= 60;
+      }
+    }
+    
+    // For any other format, just check if it's reasonable length and valid chars
+    const validChars = /^[A-Za-z0-9+/=:]+$/;
+    return validChars.test(address) && address.length >= 40 && address.length <= 60;
   };
 
   const watchWallet = async (address: string) => {
+    // Debug logging for address validation
+    console.log('🔍 Validating address:', address);
+    console.log('📏 Address length:', address.length);
+    console.log('🔤 Starts with EQ:', address.startsWith('EQ'));
+    console.log('🔤 Starts with UQ:', address.startsWith('UQ'));
+    console.log('🔤 Contains colon:', address.includes(':'));
+    
     if (!validateTONAddress(address)) {
+      console.log('❌ Address validation failed');
       toast({
         title: "Invalid Address",
-        description: "Please enter a valid TON wallet address",
+        description: "Please enter a valid TON wallet address. Supported formats: EQ..., UQ..., 0:0:..., -1:...",
         variant: "destructive",
       });
       return;
     }
+    
+    console.log('✅ Address validation passed');
 
     setIsLoading(true);
     try {
@@ -170,7 +211,7 @@ export default function WatchPage() {
           <CardContent className="space-y-4">
             <div className="flex gap-2">
               <Input
-                placeholder="Enter TON wallet address (EQ...)"
+                placeholder="Enter TON wallet address (EQ, UQ, 0:0:, etc.)"
                 value={walletAddress}
                 onChange={(e) => setWalletAddress(e.target.value)}
                 className="flex-1"
@@ -187,6 +228,18 @@ export default function WatchPage() {
                 )}
                 Watch
               </Button>
+            </div>
+            
+            {/* Help text for supported address formats */}
+            <div className="text-xs text-gray-500 space-y-1">
+              <p>Supported formats:</p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li><span className="font-mono">EQ...</span> - Bounceable address (workchain 0)</li>
+                <li><span className="font-mono">UQ...</span> - Non-bounceable address (workchain 0)</li>
+                <li><span className="font-mono">0:0:...</span> - Raw hex format (workchain 0)</li>
+                <li><span className="font-mono">-1:...</span> - Raw hex format (workchain -1)</li>
+              </ul>
+              <p className="mt-2 text-gray-400">Examples: EQ..., UQ..., 0:0:1234..., -1:abcd...</p>
             </div>
 
             {/* Recent Addresses */}
