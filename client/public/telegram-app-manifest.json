@@ -1,0 +1,65 @@
+{
+  "name": "Taskquer Mini App",
+  "short_name": "Taskquer",
+  "description": "A decentralized task marketplace built on TON blockchain",
+  "version": "1.0.0",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#0088cc",
+  "background_color": "#ffffff",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["business", "productivity", "finance"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "telegram": {
+    "bot_token": "8458270047:AAEyt0j52u-ygLhS4BAGK4S9KE6-9mjmS2E",
+    "web_app_info": {
+      "url": "https://your-domain.com",
+      "name": "Taskquer",
+      "short_name": "Taskquer",
+      "description": "Decentralized task marketplace on TON blockchain",
+      "photo": {
+        "url": "https://your-domain.com/icon-512.png"
+      }
+    },
+    "commands": [
+      {
+        "command": "start",
+        "description": "Start the Taskquer Mini App"
+      },
+      {
+        "command": "tasks",
+        "description": "View available tasks"
+      },
+      {
+        "command": "balance",
+        "description": "Check your wallet balance"
+      },
+      {
+        "command": "withdraw",
+        "description": "Withdraw your earnings"
+      }
+    ],
+    "menu_button": {
+      "type": "web_app",
+      "text": "Open Taskquer",
+      "web_app": {
+        "url": "https://your-domain.com"
+      }
+    }
+  }
+}
