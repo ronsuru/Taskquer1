@@ -387,48 +387,79 @@ export class TONWalletService {
       }
 
       console.log('🧪 Testing TON API v2 connection...');
-      const response = await fetch(`https://tonapi.io/v2/accounts/${this.walletData.address}/jettons`);
+      console.log('🔍 Wallet address:', this.walletData.address);
       
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ TON API v2 test successful:', data);
+      // Test 1: Direct TON API v2 call
+      try {
+        const response = await fetch(`https://tonapi.io/v2/accounts/${this.walletData.address}/jettons`);
+        console.log('📡 TON API v2 response status:', response.status);
+        console.log('📡 TON API v2 response headers:', Object.fromEntries(response.headers.entries()));
         
-        // Check if USDT is in the response
-        if (data.balances && Array.isArray(data.balances)) {
-          const USDT_MASTER = "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs";
-          const usdt = data.balances.find((j: any) => j.jetton && j.jetton.address === USDT_MASTER);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ TON API v2 test successful:', data);
+          console.log('📊 Full response structure:', JSON.stringify(data, null, 2));
           
-          if (usdt) {
-            console.log('✅ USDT found in TON API v2 response:', usdt);
-            return { 
-              success: true, 
-              data: { 
-                ...data, 
-                usdtFound: true, 
-                usdtBalance: (parseInt(usdt.balance) / 1e6).toFixed(2) 
-              } 
-            };
+          // Check if USDT is in the response
+          if (data.balances && Array.isArray(data.balances)) {
+            console.log('📊 Found balances array with length:', data.balances.length);
+            
+            const USDT_MASTER = "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs";
+            console.log('🔍 Looking for USDT with master address:', USDT_MASTER);
+            
+            // Log each balance item structure
+            data.balances.forEach((item: any, index: number) => {
+              console.log(`📋 Balance item ${index}:`, {
+                hasJetton: !!item.jetton,
+                jettonAddress: item.jetton?.address,
+                hasMetadata: !!item.metadata,
+                symbol: item.metadata?.symbol,
+                balance: item.balance,
+                fullItem: item
+              });
+            });
+            
+            const usdt = data.balances.find((j: any) => j.jetton && j.jetton.address === USDT_MASTER);
+            
+            if (usdt) {
+              console.log('✅ USDT found in TON API v2 response:', usdt);
+              return { 
+                success: true, 
+                data: { 
+                  ...data, 
+                  usdtFound: true, 
+                  usdtBalance: (parseInt(usdt.balance) / 1e6).toFixed(2) 
+                } 
+              };
+            } else {
+              console.log('❌ USDT not found in TON API v2 response');
+              return { 
+                success: true, 
+                data: { 
+                  ...data, 
+                  usdtFound: false, 
+                  availableJettons: data.balances.map((j: any) => ({
+                    symbol: j.metadata?.symbol,
+                    address: j.jetton?.address,
+                    balance: j.balance
+                  }))
+                } 
+              };
+            }
           } else {
-            console.log('❌ USDT not found in TON API v2 response');
-            return { 
-              success: true, 
-              data: { 
-                ...data, 
-                usdtFound: false, 
-                availableJettons: data.balances.map((j: any) => ({
-                  symbol: j.metadata?.symbol,
-                  address: j.jetton?.address,
-                  balance: j.balance
-                }))
-              } 
-            };
+            console.log('❌ No balances array found in response');
+            console.log('🔍 Response keys:', Object.keys(data));
+            return { success: true, data: { ...data, usdtFound: false, noBalancesArray: true } };
           }
+        } else {
+          console.log('❌ TON API v2 test failed with status:', response.status);
+          const errorText = await response.text();
+          console.log('❌ Error response body:', errorText);
+          return { success: false, error: `HTTP ${response.status}: ${errorText}` };
         }
-        
-        return { success: true, data };
-      } else {
-        console.log('❌ TON API v2 test failed with status:', response.status);
-        return { success: false, error: `HTTP ${response.status}` };
+      } catch (fetchError) {
+        console.log('❌ TON API v2 fetch error:', fetchError);
+        return { success: false, error: `Fetch error: ${fetchError}` };
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
@@ -596,6 +627,71 @@ export class TONWalletService {
         }
       } catch (error) {
         console.log('Method 3 (USDT Master) failed:', error);
+      }
+
+      // Method 4: Try alternative USDT contract addresses
+      try {
+        console.log('🔄 Method 4: Trying alternative USDT contracts');
+        const ALT_USDT_CONTRACTS = [
+          'EQB-MPwrd1G6MKNZb4qMNUZ8UV4wKXgw0jBUKZzqih4c0tTR',
+          'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs'
+        ];
+        
+        for (const contractAddress of ALT_USDT_CONTRACTS) {
+          try {
+            console.log(`🔄 Trying USDT contract: ${contractAddress}`);
+            
+            const response = await fetch(`https://toncenter.com/api/v2/runMethod`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                address: contractAddress,
+                method: 'get_wallet_address',
+                stack: [['tvm.Slice', this.walletData.address]]
+              })
+            });
+            
+            const data = await response.json();
+            console.log(`USDT contract ${contractAddress} response:`, data);
+            
+            if (data.ok && data.result && data.result[0]) {
+              const jettonWalletAddress = data.result[0];
+              console.log('Found jetton wallet address:', jettonWalletAddress);
+              
+              // Get balance from the user's jetton wallet
+              const balanceResponse = await fetch(`https://toncenter.com/api/v2/runMethod`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  address: jettonWalletAddress,
+                  method: 'get_balance',
+                  stack: []
+                })
+              });
+              
+              const balanceData = await balanceResponse.json();
+              console.log('Jetton wallet balance response:', balanceData);
+              
+              if (balanceData.ok && balanceData.result && balanceData.result[0]) {
+                const balance = (parseInt(balanceData.result[0]) / Math.pow(10, 6)).toFixed(2);
+                console.log('✅ USDT balance found via alternative contract:', balance);
+                return {
+                  balance,
+                  decimals: 6,
+                  contractAddress: contractAddress
+                };
+              }
+            }
+          } catch (contractError) {
+            console.log(`Contract ${contractAddress} failed:`, contractError);
+          }
+        }
+      } catch (error) {
+        console.log('Method 4 (Alternative contracts) failed:', error);
       }
 
       console.log('❌ All USDT balance methods failed');

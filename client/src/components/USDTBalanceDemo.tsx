@@ -180,10 +180,18 @@ export const USDTBalanceDemo: React.FC = () => {
               try {
                 const testResult = await tonWalletService.testTonApiV2();
                 if (testResult.success) {
-                  toast({
-                    title: "TON API v2 Test Successful",
-                    description: "API connection working! Check console for details.",
-                  });
+                  if (testResult.data?.usdtFound) {
+                    toast({
+                      title: "TON API v2 Test Successful",
+                      description: `USDT Found! Balance: ${testResult.data.usdtBalance}`,
+                    });
+                  } else {
+                    toast({
+                      title: "TON API v2 Test Successful",
+                      description: "API working but no USDT found. Check console for details.",
+                      variant: "destructive",
+                    });
+                  }
                   console.log('TON API v2 test result:', testResult.data);
                 } else {
                   toast({
@@ -200,6 +208,61 @@ export const USDTBalanceDemo: React.FC = () => {
             variant="outline"
           >
             🧪 Test TON API v2
+          </Button>
+
+          <Button
+            onClick={async () => {
+              try {
+                // Test direct API call in browser
+                const walletAddress = tonWalletService.getCurrentWalletData()?.address;
+                if (!walletAddress) {
+                  toast({
+                    title: "Error",
+                    description: "No wallet address found",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                
+                console.log('🧪 Testing direct API call for wallet:', walletAddress);
+                
+                // Test TON API v2
+                const tonApiResponse = await fetch(`https://tonapi.io/v2/accounts/${walletAddress}/jettons`);
+                console.log('📡 TON API v2 direct response:', tonApiResponse);
+                
+                if (tonApiResponse.ok) {
+                  const data = await tonApiResponse.json();
+                  console.log('📊 TON API v2 direct data:', data);
+                  
+                  // Test TON Center API
+                  const tonCenterResponse = await fetch(`https://toncenter.com/api/v2/getAddressInfo?address=${walletAddress}`);
+                  const tonCenterData = await tonCenterResponse.json();
+                  console.log('📊 TON Center direct data:', tonCenterData);
+                  
+                  toast({
+                    title: "Direct API Test Complete",
+                    description: "Check console for detailed results",
+                  });
+                } else {
+                  toast({
+                    title: "Direct API Test Failed",
+                    description: `Status: ${tonApiResponse.status}`,
+                    variant: "destructive",
+                  });
+                }
+              } catch (error) {
+                console.error('Direct API test error:', error);
+                toast({
+                  title: "Direct API Test Error",
+                  description: error instanceof Error ? error.message : "Unknown error",
+                  variant: "destructive",
+                });
+              }
+            }}
+            className="w-full"
+            variant="outline"
+          >
+            🌐 Test Direct APIs
           </Button>
 
           {!isMonitoring ? (
