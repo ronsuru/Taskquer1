@@ -152,18 +152,21 @@ export const subscribeToWalletChanges = (callback: (account: any) => void) => {
 
 // Handle jsBridgekey errors specifically
 export const handleBridgeError = (error: any) => {
-  if (error && error.message && error.message.includes('jsBridgekey')) {
-    console.error('Bridge key error detected:', error);
-    // Try to reinitialize the connector
-    try {
-      connector = new TonConnect({
-        manifestUrl: 'https://taskquer2.vercel.app/tonconnect-manifest.json'
-      });
-      console.log('TON Connect reinitialized after bridge error');
-      return true;
-    } catch (reinitError) {
-      console.error('Failed to reinitialize after bridge error:', reinitError);
-      return false;
+  // Check if error exists and has a message property
+  if (error && typeof error === 'object' && error.message && typeof error.message === 'string') {
+    if (error.message.includes('jsBridgekey') || error.message.includes('jsBridgeKey')) {
+      console.error('Bridge key error detected:', error);
+      // Try to reinitialize the connector
+      try {
+        connector = new TonConnect({
+          manifestUrl: 'https://taskquer2.vercel.app/tonconnect-manifest.json'
+        });
+        console.log('TON Connect reinitialized after bridge error');
+        return true;
+      } catch (reinitError) {
+        console.error('Failed to reinitialize after bridge error:', reinitError);
+        return false;
+      }
     }
   }
   return false;

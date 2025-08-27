@@ -91,16 +91,20 @@ const TonkeeperWallet: React.FC = () => {
       console.error('TON Connect error:', error);
       
       // Handle jsBridgekey errors specifically
-      if (handleBridgeError(error)) {
-        toast({
-          title: "Retrying Connection",
-          description: "Bridge error detected, retrying...",
-        });
-        // Try to connect again after a short delay
-        setTimeout(() => {
-          connectWallet();
-        }, 1000);
-        return;
+      try {
+        if (handleBridgeError(error)) {
+          toast({
+            title: "Retrying Connection",
+            description: "Bridge error detected, retrying...",
+          });
+          // Try to connect again after a short delay
+          setTimeout(() => {
+            connectWallet();
+          }, 1000);
+          return;
+        }
+      } catch (bridgeError) {
+        console.error('Error in bridge error handler:', bridgeError);
       }
       
       let errorMessage = 'Failed to connect to wallet';
