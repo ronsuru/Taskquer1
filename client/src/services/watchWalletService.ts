@@ -226,14 +226,36 @@ export class WatchWalletService {
 
   private async fetchWalletData(address: string): Promise<Omit<WatchWalletData, 'isWatching' | 'lastUpdated'>> {
     try {
+      console.log(`[WATCH SERVICE] Fetching data for address: ${address}`);
+      
       // Call the backend API to get real wallet data
       const response = await fetch(`/api/watch-wallet/${address}`);
       
+      console.log(`[WATCH SERVICE] Response status: ${response.status}`);
+      console.log(`[WATCH SERVICE] Response headers:`, Object.fromEntries(response.headers.entries()));
+      
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        // Try to get error details
+        let errorText = '';
+        try {
+          errorText = await response.text();
+          console.error(`[WATCH SERVICE] Error response body:`, errorText);
+        } catch (e) {
+          console.error(`[WATCH SERVICE] Could not read error response body:`, e);
+        }
+        
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+      }
+      
+      // Check content type to ensure we're getting JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error(`[WATCH SERVICE] Unexpected content type: ${contentType}`);
+        throw new Error(`Expected JSON response, got: ${contentType}`);
       }
       
       const data = await response.json();
+      console.log(`[WATCH SERVICE] Successfully parsed response:`, data);
       
       return {
         address: data.address,
@@ -242,7 +264,7 @@ export class WatchWalletService {
         transactions: data.transactions || []
       };
     } catch (error) {
-      console.error('API call failed:', error);
+      console.error('[WATCH SERVICE] API call failed:', error);
       throw new Error(`Failed to fetch wallet data: ${error}`);
     }
   }

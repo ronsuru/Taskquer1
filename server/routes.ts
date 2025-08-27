@@ -31,6 +31,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ uploadURL });
   });
 
+  // Health check endpoint
+  app.get("/api/health", (req, res) => {
+    res.json({ 
+      status: "ok", 
+      timestamp: new Date().toISOString(),
+      service: "Taskquer2 Watch Wallet API"
+    });
+  });
+
   // Test wallet endpoint
   app.post("/api/test-wallet", async (req, res) => {
     try {
@@ -55,9 +64,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get real wallet data from TON blockchain
       console.log(`[API] Fetching real data for address: ${address}`);
       
-      const balance = await tonService.getWalletBalance(address);
-      const usdtBalance = await tonService.getUSDTBalance(address);
-      const transactions = await tonService.getWalletTransactions(address, 10);
+      // Use Promise.allSettled to handle individual API failures gracefully
+      const [balanceResult, usdtResult, transactionsResult] = await Promise.allSettled([
+        tonService.getWalletBalance(address),
+        tonService.getUSDTBalance(address),
+        tonService.getWalletTransactions(address, 10)
+      ]);
+      
+      // Extract results with fallbacks
+      const balance = balanceResult.status === 'fulfilled' ? balanceResult.value : "0";
+      const usdtBalance = usdtResult.status === 'fulfilled' ? usdtResult.value : "0";
+      const transactions = transactionsResult.status === 'fulfilled' ? transactionsResult.value : [];
       
       console.log(`[API] Real data fetched - TON: ${balance}, USDT: ${usdtBalance}, TXs: ${transactions.length}`);
 
@@ -71,7 +88,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error fetching watch wallet data:", error);
-      res.status(500).json({ error: "Failed to fetch wallet data" });
+      // Always return JSON, never let HTML errors through
+      res.status(500).json({ 
+        error: "Failed to fetch wallet data",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
@@ -84,9 +105,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid TON address format" });
       }
 
-      // Refresh wallet data
-      const balance = await tonService.getWalletBalance(address);
-      const usdtBalance = await tonService.getUSDTBalance(address);
+      // Refresh wallet data with graceful error handling
+      console.log(`[API] Refreshing data for address: ${address}`);
+      
+      const [balanceResult, usdtResult] = await Promise.allSettled([
+        tonService.getWalletBalance(address),
+        tonService.getUSDTBalance(address)
+      ]);
+      
+      // Extract results with fallbacks
+      const balance = balanceResult.status === 'fulfilled' ? balanceResult.value : "0";
+      const usdtBalance = usdtResult.status === 'fulfilled' ? usdtResult.value : "0";
+      
+      console.log(`[API] Refresh completed - TON: ${balance}, USDT: ${usdtBalance}`);
       
       res.json({
         address,
@@ -96,7 +127,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error refreshing watch wallet data:", error);
-      res.status(500).json({ error: "Failed to refresh wallet data" });
+      // Always return JSON, never let HTML errors through
+      res.status(500).json({ 
+        error: "Failed to refresh wallet data",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
