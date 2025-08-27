@@ -392,6 +392,39 @@ export class TONWalletService {
       if (response.ok) {
         const data = await response.json();
         console.log('✅ TON API v2 test successful:', data);
+        
+        // Check if USDT is in the response
+        if (data.balances && Array.isArray(data.balances)) {
+          const USDT_MASTER = "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs";
+          const usdt = data.balances.find((j: any) => j.jetton && j.jetton.address === USDT_MASTER);
+          
+          if (usdt) {
+            console.log('✅ USDT found in TON API v2 response:', usdt);
+            return { 
+              success: true, 
+              data: { 
+                ...data, 
+                usdtFound: true, 
+                usdtBalance: (parseInt(usdt.balance) / 1e6).toFixed(2) 
+              } 
+            };
+          } else {
+            console.log('❌ USDT not found in TON API v2 response');
+            return { 
+              success: true, 
+              data: { 
+                ...data, 
+                usdtFound: false, 
+                availableJettons: data.balances.map((j: any) => ({
+                  symbol: j.metadata?.symbol,
+                  address: j.jetton?.address,
+                  balance: j.balance
+                }))
+              } 
+            };
+          }
+        }
+        
         return { success: true, data };
       } else {
         console.log('❌ TON API v2 test failed with status:', response.status);
@@ -454,16 +487,28 @@ export class TONWalletService {
           console.log('📊 TON API v2 jettons response:', jettonsData);
           
           if (jettonsData.balances && Array.isArray(jettonsData.balances)) {
-            for (const jetton of jettonsData.balances) {
-              if (jetton.metadata && jetton.metadata.symbol === 'USDT') {
-                console.log('✅ Found USDT jetton via TON API v2:', jetton);
-                const balance = (parseInt(jetton.balance) / Math.pow(10, 6)).toFixed(2); // USDT has 6 decimals
-                return {
-                  balance,
-                  decimals: 6,
-                  contractAddress: jetton.metadata.address
-                };
-              }
+            // Find USDT jetton (official master address)
+            const USDT_MASTER = "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs";
+            
+            const usdt = jettonsData.balances.find(
+              (j: any) => j.jetton && j.jetton.address === USDT_MASTER
+            );
+            
+            if (usdt) {
+              console.log('✅ Found USDT jetton via TON API v2:', usdt);
+              const balance = (parseInt(usdt.balance) / 1e6).toFixed(2); // USDT decimals = 6
+              return {
+                balance,
+                decimals: 6,
+                contractAddress: USDT_MASTER
+              };
+            } else {
+              console.log('❌ USDT not found in jettons list');
+              console.log('Available jettons:', jettonsData.balances.map((j: any) => ({
+                symbol: j.metadata?.symbol,
+                address: j.jetton?.address,
+                balance: j.balance
+              })));
             }
           }
         } else {
