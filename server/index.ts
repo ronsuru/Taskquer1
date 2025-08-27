@@ -55,15 +55,7 @@ app.use((req, res, next) => {
     console.error('Global error handler caught:', err);
   });
 
-  // Catch-all route handler for unmatched API routes - always return JSON
-  app.use('/api/*', (req, res) => {
-    res.status(404).json({
-      error: 'API endpoint not found',
-      path: req.path,
-      method: req.method,
-      timestamp: new Date().toISOString()
-    });
-  });
+
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route

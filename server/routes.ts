@@ -31,14 +31,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ uploadURL });
   });
 
-  // Health check endpoint
-  app.get("/api/health", (req, res) => {
-    res.json({ 
-      status: "ok", 
-      timestamp: new Date().toISOString(),
-      service: "Taskquer2 Watch Wallet API"
-    });
-  });
+
 
   // Test wallet endpoint
   app.post("/api/test-wallet", async (req, res) => {
@@ -51,89 +44,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Watch-only wallet endpoints
-  app.get("/api/watch-wallet/:address", async (req, res) => {
-    try {
-      const { address } = req.params;
-      
-      // Validate TON address format (comprehensive validation)
-      if (!tonService.validateAddress(address)) {
-        return res.status(400).json({ error: "Invalid TON address format" });
-      }
 
-      // Get real wallet data from TON blockchain
-      console.log(`[API] Fetching real data for address: ${address}`);
-      
-      // Use Promise.allSettled to handle individual API failures gracefully
-      const [balanceResult, usdtResult, transactionsResult] = await Promise.allSettled([
-        tonService.getWalletBalance(address),
-        tonService.getUSDTBalance(address),
-        tonService.getWalletTransactions(address, 10)
-      ]);
-      
-      // Extract results with fallbacks
-      const balance = balanceResult.status === 'fulfilled' ? balanceResult.value : "0";
-      const usdtBalance = usdtResult.status === 'fulfilled' ? usdtResult.value : "0";
-      const transactions = transactionsResult.status === 'fulfilled' ? transactionsResult.value : [];
-      
-      console.log(`[API] Real data fetched - TON: ${balance}, USDT: ${usdtBalance}, TXs: ${transactions.length}`);
-
-      res.json({
-        address,
-        balance: balance.toString(),
-        usdtBalance: usdtBalance.toString(),
-        transactions,
-        isWatching: true,
-        lastUpdated: Date.now()
-      });
-    } catch (error) {
-      console.error("Error fetching watch wallet data:", error);
-      // Always return JSON, never let HTML errors through
-      res.status(500).json({ 
-        error: "Failed to fetch wallet data",
-        details: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
-
-  app.post("/api/watch-wallet/:address/refresh", async (req, res) => {
-    try {
-      const { address } = req.params;
-      
-      // Validate TON address format (comprehensive validation)
-      if (!tonService.validateAddress(address)) {
-        return res.status(400).json({ error: "Invalid TON address format" });
-      }
-
-      // Refresh wallet data with graceful error handling
-      console.log(`[API] Refreshing data for address: ${address}`);
-      
-      const [balanceResult, usdtResult] = await Promise.allSettled([
-        tonService.getWalletBalance(address),
-        tonService.getUSDTBalance(address)
-      ]);
-      
-      // Extract results with fallbacks
-      const balance = balanceResult.status === 'fulfilled' ? balanceResult.value : "0";
-      const usdtBalance = usdtResult.status === 'fulfilled' ? usdtResult.value : "0";
-      
-      console.log(`[API] Refresh completed - TON: ${balance}, USDT: ${usdtBalance}`);
-      
-      res.json({
-        address,
-        balance: balance.toString(),
-        usdtBalance: usdtBalance.toString(),
-        lastUpdated: Date.now()
-      });
-    } catch (error) {
-      console.error("Error refreshing watch wallet data:", error);
-      // Always return JSON, never let HTML errors through
-      res.status(500).json({ 
-        error: "Failed to refresh wallet data",
-        details: error instanceof Error ? error.message : "Unknown error"
-      });
-    }
-  });
 
 
 

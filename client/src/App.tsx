@@ -6,16 +6,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { TelegramProvider } from "./contexts/TelegramContext";
 import Dashboard from "@/pages/dashboard";
 import AdminPage from "@/pages/admin";
-import WatchPage from "@/pages/watch";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/admin" component={AdminPage} />
-      <Route path="/watch" component={WatchPage} />
-      <Route component={NotFound} />
+              <Route path="/" component={Dashboard} />
+        <Route path="/admin" component={AdminPage} />
+        <Route component={NotFound} />
     </Switch>
   );
 }
