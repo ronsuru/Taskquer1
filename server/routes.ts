@@ -42,6 +42,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Watch-only wallet endpoints
+  app.get("/api/watch-wallet/:address", async (req, res) => {
+    try {
+      const { address } = req.params;
+      
+      // Validate TON address format
+      if (!/^EQ[a-zA-Z0-9]{48}$/.test(address)) {
+        return res.status(400).json({ error: "Invalid TON address format" });
+      }
+
+      // Get wallet balance and basic info
+      const balance = await tonService.getWalletBalance(address);
+      const usdtBalance = await tonService.getUSDTBalance(address);
+      
+      // Get recent transactions (mock data for now)
+      const transactions = [
+        {
+          hash: "mock_hash_1",
+          timestamp: Date.now() - 86400000,
+          amount: "1.2345",
+          type: "in" as const,
+          from: "EQ" + "0".repeat(48),
+          to: address,
+          fee: "0.001",
+          status: "completed" as const
+        }
+      ];
+
+      res.json({
+        address,
+        balance: balance.toString(),
+        usdtBalance: usdtBalance.toString(),
+        transactions,
+        isWatching: true,
+        lastUpdated: Date.now()
+      });
+    } catch (error) {
+      console.error("Error fetching watch wallet data:", error);
+      res.status(500).json({ error: "Failed to fetch wallet data" });
+    }
+  });
+
+  app.post("/api/watch-wallet/:address/refresh", async (req, res) => {
+    try {
+      const { address } = req.params;
+      
+      // Validate TON address format
+      if (!/^EQ[a-zA-Z0-9]{48}$/.test(address)) {
+        return res.status(400).json({ error: "Invalid TON address format" });
+      }
+
+      // Refresh wallet data
+      const balance = await tonService.getWalletBalance(address);
+      const usdtBalance = await tonService.getUSDTBalance(address);
+      
+      res.json({
+        address,
+        balance: balance.toString(),
+        usdtBalance: usdtBalance.toString(),
+        lastUpdated: Date.now()
+      });
+    } catch (error) {
+      console.error("Error refreshing watch wallet data:", error);
+      res.status(500).json({ error: "Failed to refresh wallet data" });
+    }
+  });
+
 
 
   // User endpoints

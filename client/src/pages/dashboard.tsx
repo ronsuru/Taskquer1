@@ -10,7 +10,7 @@ import WithdrawalForm from "@/components/WithdrawalForm";
 import TaskSubmissionModal from "@/components/TaskSubmissionModal";
 import AdminBalanceModal from "@/components/AdminBalanceModal";
 import CreateCampaignModal from "@/components/CreateCampaignModal";
-import { User, Wallet, Trophy, CheckCircle, Search, Plus, Filter, Settings, LogOut, User as UserIcon, Cog, Download, Bell, Globe, Crown, Clock, RefreshCw } from "lucide-react";
+import { User, Wallet, Trophy, CheckCircle, Search, Plus, Filter, Settings, LogOut, User as UserIcon, Cog, Download, Bell, Globe, Crown, Clock, RefreshCw, Eye } from "lucide-react";
 import type { Campaign, User as UserType, Transaction } from "@shared/schema";
 import { useTelegram } from "@/contexts/TelegramContext";
 import { TelegramAppLauncher } from "@/components/TelegramAppLauncher";
@@ -1113,6 +1113,15 @@ export default function Dashboard() {
             >
               <Trophy className={`w-5 h-5 ${activeSection === 'browseTask' ? 'text-blue-600' : 'text-blue-600'}`} />
               <span className="text-xs font-medium">Tasks</span>
+            </button>
+
+            {/* Watch */}
+            <button
+              onClick={() => window.location.href = '/watch'}
+              className="flex flex-col items-center space-y-2 p-3 rounded-xl transition-all duration-200 text-gray-500 hover:text-blue-600 hover:bg-gray-50/50"
+            >
+              <Eye className="w-5 h-5 text-gray-400" />
+              <span className="text-xs font-medium">Watch</span>
             </button>
 
             {/* Transactions */}
