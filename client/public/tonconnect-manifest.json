@@ -1,0 +1,11 @@
+{
+  "url": "https://taskquer2.vercel.app",
+  "name": "Taskquer2 Mini-App",
+  "iconUrl": "https://taskquer2.vercel.app/icon-192.png",
+  "termsOfUseUrl": "https://taskquer2.vercel.app/terms",
+  "privacyPolicyUrl": "https://taskquer2.vercel.app/privacy",
+  "features": [
+    "ton_addr",
+    "ton_proof"
+  ]
+}
